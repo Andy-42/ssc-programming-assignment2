@@ -1,14 +1,15 @@
 package andy42.ssc
 
+import cats.effect.IO
+import com.twitter.twittertext.{Extractor, TwitterTextEmojiRegex}
+import fs2.{Pure, Stream}
+
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import scala.util.Try
-import com.twitter.twittertext.{Extractor, TwitterTextEmojiRegex}
-
-import scala.jdk.CollectionConverters._
 import scala.annotation.tailrec
-import fs2.{Pure, Stream}
+import scala.jdk.CollectionConverters._
+import scala.util.{Either, Try}
 
 /** Data extracted from a tweet.
   *
@@ -23,9 +24,9 @@ import fs2.{Pure, Stream}
   *                   A domain can occur multiple times within one tweet.
   */
 case class TweetExtract(createdAt: Long,
-                              hashTags: Vector[String],
-                              emojis: Vector[String],
-                              urlDomains: Vector[String]) {
+                        hashTags: Vector[String],
+                        emojis: Vector[String],
+                        urlDomains: Vector[String]) {
 
   def containsEmoji: Boolean = emojis.nonEmpty
 
@@ -52,14 +53,14 @@ object TweetExtract {
     * @param json The `io.circe.Json` instance to decode.
     * @return The optional decoded tweet. A failure to decode the tweet results in `None`
     */
-  def decode(json: io.circe.Json): Stream[Pure, TweetExtract] = {
+  def decode[F[_]](json: io.circe.Json): IO[Stream[Pure, TweetExtract]] = IO {
 
     val hCursor = json.hcursor
 
-    val decodeResult: Option[TweetExtract] = for {
-      createdAt: String <- hCursor.get[String]("created_at").toOption
-      text: String <- hCursor.get[String]("text").toOption
-      parsedDate: Long <- parseDate(createdAt)
+    val decodeResult = for {
+      createdAt: String <- hCursor.get[String]("created_at")
+      text: String <- hCursor.get[String]("text")
+      parsedDate <- parseDate(createdAt)
     } yield
       TweetExtract(
         createdAt = EventTime.toWindowStart(parsedDate),
@@ -68,14 +69,7 @@ object TweetExtract {
         urlDomains = extractUrlDomains(text)
       )
 
-    // FIXME: Non-idiomatic Scala
-    if (decodeResult.isEmpty)
-      Stream.empty
-    else
-      Stream.emit(decodeResult.get)
-
-    // TODO: Why doesn't this fold work?
-//    decodeResult.fold(Stream.empty){ Stream.emit(_) }
+    decodeResult.fold(_ => Stream.empty, tweetExtract => Stream.emit(tweetExtract))
   }
 
   // For decoding tweet timestamps.
@@ -84,8 +78,8 @@ object TweetExtract {
   // Extractor is from the Twitter-provided library for extracting from a Tweet's text
   private[this] val extractor = new Extractor()
 
-  def parseDate(dateString: String): Option[Long] =
-    Try(Instant.from(formatter.parse(dateString)).toEpochMilli).toOption
+  def parseDate(dateString: String): Either[Throwable, Long] =
+    Try(Instant.from(formatter.parse(dateString)).toEpochMilli).toEither
 
   def extractHashTags(text: String): Vector[String] = extractor.extractHashtags(text).asScala.toVector
 

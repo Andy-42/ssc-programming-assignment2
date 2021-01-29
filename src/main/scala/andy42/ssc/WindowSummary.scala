@@ -44,7 +44,7 @@ case class WindowSummary(createdAt: Long,
       emojiCounts = addCounts(emojiCounts, tweetExtract.emojis))
   }
 
-  /** Add the occurrences from a Chunk[TweetExtract to a existing WindowSummary */
+  /** Add the occurrences from a Chunk[TweetExtract] to a existing WindowSummary */
   def add(tweetExtracts: Chunk[TweetExtract]): WindowSummary = {
 
     require(tweetExtracts.forall(_.createdAt == createdAt),

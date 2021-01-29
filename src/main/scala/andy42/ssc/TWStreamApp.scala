@@ -22,11 +22,15 @@ object TWStreamApp extends IOApp {
     // Required by WindowsSummaries.combineTweet/combineChunkedTweet
     implicit val clock: Clock[IO] = Clock.create[IO]
 
+    // Start with the stream of Tweet JSON coming from the Twitter sample stream.
     new TWStream[IO].jsonStream()
 
-      // Map the incoming tweets in JSON format to extracts with only the aspects this stream monitors
-      // TODO: Implement concurrent processing, assuming that the extract process uses significant CPU
-      .flatMap(j => TweetExtract.decode(j))
+      // Map the incoming tweets in JSON format to extracts with only the aspects this stream monitors.
+      // The presumption is that this stage will use significant CPU, so we can increase the concurrency
+      // to use available core to increase overall throughput.
+      .parEvalMapUnordered(ExtractConcurrency)(TweetExtract.decode)
+      .flatMap(identity)
+
 
       // Aggregate tweet extracts in windows, and emit them as windows expire
 
