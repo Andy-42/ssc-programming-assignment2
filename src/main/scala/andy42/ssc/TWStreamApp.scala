@@ -42,7 +42,8 @@ object TWStreamApp extends IOApp {
       // which both works out nicely because tweets arrive in that order, but also the
       // aggregation logic in WindowSummaries.combineChunkedTweet requires that all tweets
       // in a chunk are in the same window (for simplicity of the logic).
-      // TODO: Will the chunk size cause tweets to be delayed (and perhaps expire before aggregation)?
+      // TODO: Use `Stream.groupWithin` to bound the size and emit deadline for chunks
+      // TODO: and refactor `WindowSummaries.combineChunkedTweet` to deal with mixed createTime chunks.
       .groupAdjacentByLimit(limit = StreamParametersConfig.chunkSizeLimit)(_.createdAt)
       .evalScan((WindowSummaries(), Stream.emits(Seq.empty[WindowSummaryOutput]))) {
         case ((windowSummaries, _), tweetExtractChunk: (Long, Chunk[TweetExtract])) =>
@@ -54,6 +55,7 @@ object TWStreamApp extends IOApp {
       .map(_.asJson.spaces2 + "\n")
       .through(utf8Encode)
       .through(stdout(blocker))
+
       .compile
       .drain
       .as(ExitCode.Success)
