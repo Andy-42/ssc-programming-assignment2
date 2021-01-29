@@ -26,79 +26,40 @@ case class WindowSummary(createdAt: Long,
 
   import WindowSummary.addCounts
 
-  /** Add the occurrences from a single TweetExtract to an existing WindowSummary */
-  def add(tweetExtract: TweetExtract): WindowSummary = {
-
-    require(tweetExtract.createdAt == createdAt,
-      "The extract must have the same createdAt as this WindowSummary")
-
-    WindowSummary(
-      createdAt = createdAt,
-      tweets = tweets + 1,
-
-      tweetsWithEmoji = tweetsWithEmoji + (if (tweetExtract.containsEmoji) 1 else 0),
-      tweetsWithUrl = tweetsWithUrl + (if (tweetExtract.containsUrl) 1 else 0),
-      tweetsWithPhotoUrl = tweetsWithPhotoUrl + (if (tweetExtract.containsPhotoUrl) 1 else 0),
-
-      hashtagCounts = addCounts(hashtagCounts, tweetExtract.hashTags),
-      domainCounts = addCounts(domainCounts, tweetExtract.urlDomains),
-      emojiCounts = addCounts(emojiCounts, tweetExtract.emojis))
-  }
 
   /** Add the occurrences from a Chunk[TweetExtract] to a existing WindowSummary */
   def add(tweetExtracts: Chunk[TweetExtract]): WindowSummary = {
 
-    require(tweetExtracts.forall(_.createdAt == createdAt),
-      "All extracts must have the same createdAt as this WindowSummary")
+    def tweetsInThisWindow: Iterator[TweetExtract] = tweetExtracts.iterator.filter(_.createdAt == createdAt)
 
     WindowSummary(
       createdAt = createdAt,
       tweets = tweets + tweetExtracts.size,
 
-      tweetsWithEmoji = tweetsWithEmoji + tweetExtracts.iterator.count(_.containsEmoji),
-      tweetsWithUrl = tweetsWithUrl + tweetExtracts.iterator.count(_.containsUrl),
-      tweetsWithPhotoUrl = tweetsWithPhotoUrl + tweetExtracts.iterator.count(_.containsPhotoUrl),
+      tweetsWithEmoji = tweetsWithEmoji + tweetsInThisWindow.count(_.containsEmoji),
+      tweetsWithUrl = tweetsWithUrl + tweetsInThisWindow.count(_.containsUrl),
+      tweetsWithPhotoUrl = tweetsWithPhotoUrl + tweetsInThisWindow.count(_.containsPhotoUrl),
 
-      hashtagCounts = addCounts(hashtagCounts, tweetExtracts.iterator.flatMap(_.hashTags).toVector),
-      domainCounts = addCounts(domainCounts, tweetExtracts.iterator.flatMap(_.urlDomains).toVector),
-      emojiCounts = addCounts(emojiCounts, tweetExtracts.iterator.flatMap(_.emojis).toVector)
+      hashtagCounts = addCounts(hashtagCounts, tweetsInThisWindow.flatMap(_.hashTags).toVector),
+      domainCounts = addCounts(domainCounts, tweetsInThisWindow.flatMap(_.urlDomains).toVector),
+      emojiCounts = addCounts(emojiCounts, tweetsInThisWindow.flatMap(_.emojis).toVector)
     )
   }
 }
 
 object WindowSummary {
 
-  /** Create a new WindowSummary from a TweetExtract. */
-  def apply(tweetExtract: TweetExtract): WindowSummary =
-    WindowSummary(
-      createdAt = tweetExtract.createdAt,
-      tweets = 1,
-      tweetsWithEmoji = if (tweetExtract.containsEmoji) 1 else 0,
-      tweetsWithUrl = if (tweetExtract.containsUrl) 1 else 0,
-      tweetsWithPhotoUrl = if (tweetExtract.containsPhotoUrl) 1 else 0,
-      hashtagCounts = occurrenceCounts(tweetExtract.hashTags),
-      domainCounts = occurrenceCounts(tweetExtract.urlDomains),
-      emojiCounts = occurrenceCounts(tweetExtract.emojis)
-    )
-
-  /** Create a new WindowSummary from a Chunk[TweetExtract] */
-  def apply(tweetExtracts: Chunk[TweetExtract]): WindowSummary = {
-
-    require(tweetExtracts.nonEmpty)
-    val createdAt = tweetExtracts(0).createdAt
-    require(tweetExtracts.forall(_.createdAt == createdAt), "All extracts must have the same createdAt")
-
-    WindowSummary(
+  def apply(createdAt: Long) =
+    new WindowSummary(
       createdAt = createdAt,
-      tweets = tweetExtracts.size.toLong,
-      tweetsWithEmoji = tweetExtracts.iterator.count(_.containsEmoji).toLong,
-      tweetsWithUrl = tweetExtracts.iterator.count(_.containsUrl).toLong,
-      tweetsWithPhotoUrl = tweetExtracts.iterator.count(_.containsPhotoUrl).toLong,
-      hashtagCounts = occurrenceCounts(tweetExtracts.iterator.flatMap(_.hashTags).toVector),
-      domainCounts = occurrenceCounts(tweetExtracts.iterator.flatMap(_.urlDomains).toVector),
-      emojiCounts = occurrenceCounts(tweetExtracts.iterator.flatMap(_.emojis).toVector)
+      tweets = 0,
+      tweetsWithEmoji = 0,
+      tweetsWithUrl = 0,
+      tweetsWithPhotoUrl = 0,
+      hashtagCounts = Map.empty,
+      domainCounts = Map.empty,
+      emojiCounts = Map.empty
     )
-  }
 
   /** Calculate the count for each occurrence of a String */
   def occurrenceCounts(occurrences: Seq[String]): Map[String, Long] =

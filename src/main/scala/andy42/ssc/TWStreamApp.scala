@@ -2,9 +2,9 @@ package andy42.ssc
 
 import andy42.ssc.config.Config.StreamParametersConfig
 import cats.effect._
+import fs2.Stream
 import fs2.io.stdout
 import fs2.text.utf8Encode
-import fs2.{Chunk, Stream}
 import io.circe.generic.auto._
 import io.circe.syntax._
 
@@ -27,27 +27,13 @@ object TWStreamApp extends IOApp {
       .parEvalMapUnordered(StreamParametersConfig.extractConcurrency)(TweetExtract.decode)
       .flatMap(identity)
 
+      // Group in chunks as large as possible, but put an upper limit on how long we will wait before emitting.
+      .groupWithin(n = StreamParametersConfig.chunkSizeLimit, d = StreamParametersConfig.chunkGroupTimeout)
 
-      // Aggregate tweet extracts in windows, and emit them as windows expire
-
-      // This version of the aggregation consumes one TweetExtract at a time
-      //      .evalScan((WindowSummaries(), Stream.emits(Seq.empty[WindowSummaryOutput]))) {
-      //        case ((windowSummaries, _), tweetExtract: TweetExtract) =>
-      //          WindowSummaries.combineTweet[IO](windowSummaries, tweetExtract)
-      //      }
-      //      .flatMap(_._2)
-
-      // This version of the aggregation consumes a Chunk[TweetExtract] for efficiency.
-      // The function groups into chunks based on the window that the tweet was created in,
-      // which both works out nicely because tweets arrive in that order, but also the
-      // aggregation logic in WindowSummaries.combineChunkedTweet requires that all tweets
-      // in a chunk are in the same window (for simplicity of the logic).
-      // TODO: Use `Stream.groupWithin` to bound the size and emit deadline for chunks
-      // TODO: and refactor `WindowSummaries.combineChunkedTweet` to deal with mixed createTime chunks.
-      .groupAdjacentByLimit(limit = StreamParametersConfig.chunkSizeLimit)(_.createdAt)
+      // Aggregate tweet extracts in windows, and emit them as windows expire.
       .evalScan((WindowSummaries(), Stream.emits(Seq.empty[WindowSummaryOutput]))) {
-        case ((windowSummaries, _), tweetExtractChunk: (Long, Chunk[TweetExtract])) =>
-          WindowSummaries.combineChunkedTweet[IO](windowSummaries, tweetExtractChunk._2)
+        case ((windowSummaries, _), tweetExtractChunk) =>
+          WindowSummaries.combineChunkedTweet[IO](windowSummaries, tweetExtractChunk)
       }
       .flatMap(_._2)
 
@@ -56,6 +42,7 @@ object TWStreamApp extends IOApp {
       .through(utf8Encode)
       .through(stdout(blocker))
 
+      // Make it so
       .compile
       .drain
       .as(ExitCode.Success)
