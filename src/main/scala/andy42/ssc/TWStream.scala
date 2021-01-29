@@ -1,14 +1,14 @@
 package andy42.ssc
 
+import andy42.ssc.config.Config.TwitterStreamConfig
+import cats.effect._
+import fs2.Stream
+import io.circe.Json
+import jawnfs2._
 import org.http4s._
 import org.http4s.client.blaze._
 import org.http4s.client.oauth1
 import org.http4s.implicits._
-import cats.effect._
-import com.typesafe.config.{Config, ConfigFactory}
-import fs2.Stream
-import io.circe.Json
-import jawnfs2._
 import org.typelevel.jawn.Facade
 
 import scala.concurrent.ExecutionContext.global
@@ -27,8 +27,8 @@ class TWStream[F[_] : ConcurrentEffect : ContextShift] {
     * OAuth signing is an effect due to generating a nonce for each `Request`.
     */
   def sign(req: Request[F]): F[Request[F]] = {
-    val consumer = oauth1.Consumer(TWStream.ConsumerKey, TWStream.ConsumerSecret)
-    val token = oauth1.Token(TWStream.AccessToken, TWStream.AccessTokenSecret)
+    val consumer = oauth1.Consumer(TwitterStreamConfig.apiKey, TwitterStreamConfig.apiKeySecret)
+    val token = oauth1.Token(TwitterStreamConfig.accessToken, TwitterStreamConfig.accessTokenSecret)
     oauth1.signRequest(req, consumer, callback = None, verifier = None, token = Some(token))
   }
 
@@ -46,13 +46,4 @@ class TWStream[F[_] : ConcurrentEffect : ContextShift] {
       // Parse the response stream using jawn, producing a Stream of io.circe.Json
       res <- client.stream(signedRequest).flatMap(_.body.chunks.parseJsonStream)
     } yield res
-}
-
-object TWStream {
-  val config: Config = ConfigFactory.load("application.conf").getConfig("twitter-stream")
-
-  val ConsumerKey: String = config.getString("api-key")
-  val ConsumerSecret: String = config.getString("api-key-secret")
-  val AccessToken: String = config.getString("access-token")
-  val AccessTokenSecret: String = config.getString("access-token-secret")
 }

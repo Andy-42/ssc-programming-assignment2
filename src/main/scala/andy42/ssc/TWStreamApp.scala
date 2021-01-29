@@ -1,19 +1,15 @@
 package andy42.ssc
 
+import andy42.ssc.config.Config.StreamParametersConfig
 import cats.effect._
-import com.typesafe.config.{Config, ConfigFactory}
-import fs2.{Chunk, Stream}
 import fs2.io.stdout
 import fs2.text.utf8Encode
-import io.circe.syntax._
+import fs2.{Chunk, Stream}
 import io.circe.generic.auto._
+import io.circe.syntax._
 
 
 object TWStreamApp extends IOApp {
-
-  val config: Config = ConfigFactory.load("application.conf").getConfig("stream-parameters")
-  val ChunkSizeLimit: Int = config.getInt("chunk-size-limit")
-  val ExtractConcurrency: Int = config.getInt("extract-concurrency")
 
   def run(args: List[String]): IO[ExitCode] = {
 
@@ -28,7 +24,7 @@ object TWStreamApp extends IOApp {
       // Map the incoming tweets in JSON format to extracts with only the aspects this stream monitors.
       // The presumption is that this stage will use significant CPU, so we can increase the concurrency
       // to use available core to increase overall throughput.
-      .parEvalMapUnordered(ExtractConcurrency)(TweetExtract.decode)
+      .parEvalMapUnordered(StreamParametersConfig.extractConcurrency)(TweetExtract.decode)
       .flatMap(identity)
 
 
@@ -47,7 +43,7 @@ object TWStreamApp extends IOApp {
       // aggregation logic in WindowSummaries.combineChunkedTweet requires that all tweets
       // in a chunk are in the same window (for simplicity of the logic).
       // TODO: Will the chunk size cause tweets to be delayed (and perhaps expire before aggregation)?
-      .groupAdjacentByLimit(limit = ChunkSizeLimit)(_.createdAt)
+      .groupAdjacentByLimit(limit = StreamParametersConfig.chunkSizeLimit)(_.createdAt)
       .evalScan((WindowSummaries(), Stream.emits(Seq.empty[WindowSummaryOutput]))) {
         case ((windowSummaries, _), tweetExtractChunk: (Long, Chunk[TweetExtract])) =>
           WindowSummaries.combineChunkedTweet[IO](windowSummaries, tweetExtractChunk._2)

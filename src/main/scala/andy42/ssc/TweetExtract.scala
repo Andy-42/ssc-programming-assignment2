@@ -11,6 +11,7 @@ import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
 import scala.util.{Either, Try}
 
+
 /** Data extracted from a tweet.
   *
   * @param createdAt  The `created_at` timestamp from the tweet, in milliseconds, aligned to the

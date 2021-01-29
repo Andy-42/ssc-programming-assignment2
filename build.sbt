@@ -21,7 +21,7 @@ lazy val root = (project in file("."))
       "ch.qos.logback" % "logback-classic" % LogbackVersion,
       "org.scalameta" %% "svm-subs" % "20.2.0",
 
-      "com.typesafe" % "config" % "1.4.0",
+      "com.github.pureconfig" %% "pureconfig" % "0.14.0",
 
       "com.twitter.twittertext" % "twitter-text" % "3.1.0",
 

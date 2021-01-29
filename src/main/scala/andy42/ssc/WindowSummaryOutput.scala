@@ -1,5 +1,6 @@
 package andy42.ssc
 
+import andy42.ssc.config.Config.SummaryOutputConfig
 import com.codahale.metrics.Meter
 
 import java.time.Instant
@@ -47,8 +48,6 @@ case class WindowSummaryOutput(windowStart: String,
 
 object WindowSummaryOutput {
 
-  val TopN = 10 // TODO: Make this configurable
-
   def apply(windowSummary: WindowSummary,
             rateMeter: Meter): WindowSummaryOutput = {
 
@@ -74,11 +73,11 @@ object WindowSummaryOutput {
     )
   }
 
-  /**  */
+  /** Get the top N values by counts in descending order.  */
   def top(counts: Map[String, Long]): Seq[String] =
     counts.toSeq
       .sortBy { case (_, count) => -count } // descending
-      .take(TopN)
+      .take(SummaryOutputConfig.topN)
       .map { case (key, _) => key } // Keep the keys only
 }
 

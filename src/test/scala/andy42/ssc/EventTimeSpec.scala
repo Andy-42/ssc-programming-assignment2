@@ -1,8 +1,8 @@
 package andy42.ssc
 
-import org.scalatest._
-import flatspec._
-import matchers._
+import andy42.ssc.config.Config.EventTimeConfig
+import org.scalatest.flatspec._
+import org.scalatest.matchers._
 
 /** Tests for EventTime calculations.
   */
@@ -17,14 +17,14 @@ class EventTimeSpec extends AnyFlatSpec with should.Matchers {
     EventTime.toWindowStart(initial) shouldBe initial
 
     // The previous tick is in the previous window
-    EventTime.toWindowStart(initial - 1) shouldBe initial - EventTime.WindowSize
+    EventTime.toWindowStart(initial - 1) shouldBe initial - EventTimeConfig.windowSizeMs
 
     // Check when the window start calculation ticks over to the next window
-    EventTime.toWindowStart(initial + EventTime.WindowSize - 1) shouldBe initial
-    EventTime.toWindowStart(initial + EventTime.WindowSize) shouldBe initial + EventTime.WindowSize
+    EventTime.toWindowStart(initial + EventTimeConfig.windowSizeMs - 1) shouldBe initial
+    EventTime.toWindowStart(initial + EventTimeConfig.windowSizeMs) shouldBe initial + EventTimeConfig.windowSizeMs
 
     // toWindowEnd aligns a time to the last tick in that window
-    EventTime.toWindowEnd(initialRaw) shouldBe initial + EventTime.WindowSize + 1
+    EventTime.toWindowEnd(initialRaw) shouldBe initial + EventTimeConfig.windowSizeMs + 1
   }
 
   "EventTime.isExpired" should "determine if a point in time is expired relative to the watermark" in {

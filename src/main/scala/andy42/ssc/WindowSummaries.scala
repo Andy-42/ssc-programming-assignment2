@@ -1,13 +1,12 @@
 package andy42.ssc
 
-import fs2.Chunk
-import fs2.Stream
-import fs2.Pure
-import com.codahale.metrics.Meter
 import cats.effect.{Clock, Sync}
 import cats.syntax.functor._
+import com.codahale.metrics.Meter
+import fs2.{Chunk, Pure, Stream}
 
 import scala.concurrent.duration.MILLISECONDS
+
 
 /** The current summary state.
   *

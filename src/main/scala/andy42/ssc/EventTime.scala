@@ -1,6 +1,7 @@
 package andy42.ssc
 
-import com.typesafe.config.{Config, ConfigFactory}
+import config.Config.EventTimeConfig
+
 
 /** Functions for segmenting an event stream into tumbling windows.
   *
@@ -15,18 +16,14 @@ import com.typesafe.config.{Config, ConfigFactory}
   */
 object EventTime {
 
-  val config: Config = ConfigFactory.load("application.conf").getConfig("window-spec")
-  val WindowSize: Long = config.getDuration("window-size").toMillis
-  val Watermark: Long = config.getDuration("watermark").toMillis
-
   /** Move an instant (in millis) to the beginning of a Window */
-  def toWindowStart(createdAt: Long): Long = createdAt - (createdAt % WindowSize)
+  def toWindowStart(createdAt: Long): Long = createdAt - (createdAt % EventTimeConfig.windowSizeMs)
 
-  def toWindowEnd(createdAt: Long): Long = toWindowStart(createdAt) + WindowSize - 1
+  def toWindowEnd(createdAt: Long): Long = toWindowStart(createdAt) + EventTimeConfig.windowSizeMs - 1
 
   /** Does an instant (in millis) fall into a fully-expired window?
     * We compare the instant that the window ends to the watermark position (relative to now):
     * if the end of the window is before the watermark, that window is fully expired.
     */
-  def isExpired(createdAt: Long, now: Long): Boolean = toWindowEnd(createdAt) < (now - Watermark)
+  def isExpired(createdAt: Long, now: Long): Boolean = toWindowEnd(createdAt) < (now - EventTimeConfig.watermarkMs)
 }
