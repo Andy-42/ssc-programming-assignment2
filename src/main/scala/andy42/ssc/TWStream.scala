@@ -13,6 +13,7 @@ import org.typelevel.jawn.Facade
 
 import scala.concurrent.ExecutionContext.global
 
+
 /** Produces a Stream of JSON from the Twitter sample stream.
   * This uses the sample stream from the Twitter 1.1 API.
   * There is a V2 version of this Twitter API, but the http4s API does not yet support

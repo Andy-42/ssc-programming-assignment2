@@ -2,6 +2,7 @@ package andy42.ssc
 
 import fs2.Chunk
 
+
 /** The summary of tweets within a given window.
   *
   * @param createdAt          The time that the tweet was created, adjusted to the start of the window
@@ -113,4 +114,3 @@ object WindowSummary {
     counts ++ updatedCounts
   }
 }
-

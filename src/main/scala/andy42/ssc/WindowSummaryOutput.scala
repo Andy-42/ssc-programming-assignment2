@@ -80,5 +80,3 @@ object WindowSummaryOutput {
       .take(SummaryOutputConfig.topN)
       .map { case (key, _) => key } // Keep the keys only
 }
-
-
