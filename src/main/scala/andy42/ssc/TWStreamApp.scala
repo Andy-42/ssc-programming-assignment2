@@ -2,7 +2,7 @@ package andy42.ssc
 
 import andy42.ssc.config.Config.{StreamParametersConfig => Config}
 import cats.effect._
-import fs2.Stream
+import fs2.{Pure, Stream}
 import fs2.io.stdout
 import fs2.text.utf8Encode
 import io.circe.generic.auto._
@@ -35,7 +35,7 @@ object TWStreamApp extends IOApp {
         case ((windowSummaries, _), tweetExtractChunk) =>
           WindowSummaries.combineChunkedTweet[IO](windowSummaries, tweetExtractChunk)
       }
-      .flatMap(_._2)
+      .flatMap { case (_, output: Stream[Pure, WindowSummaryOutput]) => output }
 
       // For demo purposes, print a JSON representation to the console as they are emitted
       .map(_.asJson.spaces2 + "\n")
