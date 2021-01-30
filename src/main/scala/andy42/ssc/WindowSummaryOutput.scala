@@ -31,21 +31,21 @@ case class WindowSummaryOutput(windowStart: String,
                                windowEnd: String,
                                windowLastUpdate: String,
 
-                               totalTweetCount: Long,
+                               totalTweetCount: Count,
 
-                               tweetCountThisWindow: Long,
+                               tweetCountThisWindow: Count,
 
-                               oneMinuteRate: Double,
-                               fiveMinuteRate: Double,
-                               fifteenMinuteRate: Double,
+                               oneMinuteRate: Rate,
+                               fiveMinuteRate: Rate,
+                               fifteenMinuteRate: Rate,
 
                                topEmojis: List[String],
                                topHashtags: List[String],
                                topDomains: List[String],
 
-                               tweetsWithEmojiPercent: Double,
-                               tweetsWithUrlPercent: Double,
-                               tweetsWithPhotoUrlPercent: Double
+                               tweetsWithEmojiPercent: Percent,
+                               tweetsWithUrlPercent: Percent,
+                               tweetsWithPhotoUrlPercent: Percent
                               )
 
 object WindowSummaryOutput {
@@ -54,8 +54,8 @@ object WindowSummaryOutput {
             rateMeter: Meter): WindowSummaryOutput = {
 
     WindowSummaryOutput(
-      windowStart = Instant.ofEpochMilli(windowSummary.createdAt).toString,
-      windowEnd = Instant.ofEpochMilli(EventTime.toWindowEnd(windowSummary.createdAt)).toString,
+      windowStart = Instant.ofEpochMilli(windowSummary.windowStart).toString,
+      windowEnd = Instant.ofEpochMilli(EventTime.toWindowEnd(windowSummary.windowStart)).toString,
       windowLastUpdate = Instant.ofEpochMilli(windowSummary.lastWindowUpdate).toString,
 
       totalTweetCount = rateMeter.getCount,
@@ -77,7 +77,7 @@ object WindowSummaryOutput {
   }
 
   /** Get the top N values by counts in descending order. */
-  def top(counts: Map[String, Long]): Seq[String] =
+  def top(counts: Map[String, Count]): Seq[String] =
     counts.toSeq
       .sortBy { case (_, count) => -count } // descending
       .take(Config.topN)

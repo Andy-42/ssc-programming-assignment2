@@ -16,7 +16,7 @@ import scala.concurrent.duration.MILLISECONDS
   *                          Note that we only count tweets that make it to this summary calculation stage,
   *                          and ignore other tweets that have been discarded at earlier stages of processing.
   */
-case class WindowSummaries private(summariesByWindow: Map[Long, WindowSummary],
+case class WindowSummaries private(summariesByWindow: Map[WindowStart, WindowSummary],
                                    rateMeter: Meter)
 
 /** Provides methods for aggregating tweet extracts into WindowSummaries state.
@@ -56,7 +56,7 @@ object WindowSummaries {
 
       // Update the window summaries for each distinct window start time, but only for non-expired windows.
       updatedSummaries = windowSummaries.summariesByWindow ++ (for {
-        windowStart <- tweetExtracts.foldLeft(Set.empty[Long])(_ + _.createdAt)
+        windowStart <- tweetExtracts.foldLeft(Set.empty[WindowStart])(_ + _.windowStart)
         if !EventTime.isExpired(createdAt = windowStart, now = now)
         previousSummaryForWindow = windowSummaries.summariesByWindow.getOrElse(
           key = windowStart, default = WindowSummary(windowStart = windowStart, now = now))

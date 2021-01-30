@@ -19,7 +19,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
     ).getOrElse(Json.Null)
 
     TweetExtract.decode(rawJson) shouldBe Some(
-      TweetExtract(createdAt = 1519765900000L,
+      TweetExtract(windowStart = 1519765900000L,
         hashTags = Vector.empty,
         urlDomains = Vector.empty,
         emojis = Vector.empty))
@@ -77,7 +77,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
 
     TweetExtract.decode(rawJson) shouldBe Some(
       // With the default configuration, createdAt would be 1519765901000 if WindowSpec.toWindowStart was not applied.
-      TweetExtract(createdAt = 1519765900000L,
+      TweetExtract(windowStart = 1519765900000L,
         hashTags = Vector.empty,
         urlDomains = Vector.empty,
         // Note that the order is reversed relative to the order in the original text
@@ -96,7 +96,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
     ).getOrElse(Json.Null)
 
     TweetExtract.decode(rawJson) shouldBe Some(
-      TweetExtract(createdAt = 1519765900000L,
+      TweetExtract(windowStart = 1519765900000L,
         hashTags = Vector.empty,
         urlDomains = Vector.empty,
         // Note that the order is reversed relative to the order in the original text
@@ -114,7 +114,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
     ).getOrElse(Json.Null)
 
     TweetExtract.decode(rawJson) shouldBe Some(
-      TweetExtract(createdAt = 1519765900000L,
+      TweetExtract(windowStart = 1519765900000L,
         hashTags = Vector.empty,
         urlDomains = Vector("foo.com", "twitter.com"),
         // Note that the order is reversed relative to the order in the original text
@@ -132,7 +132,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
     ).getOrElse(Json.Null)
 
     TweetExtract.decode(rawJson) shouldBe Some(
-      TweetExtract(createdAt = 1519765900000L,
+      TweetExtract(windowStart = 1519765900000L,
         hashTags = Vector("hello", "world"),
         urlDomains = Vector.empty,
         // Note that the order is reversed relative to the order in the original text

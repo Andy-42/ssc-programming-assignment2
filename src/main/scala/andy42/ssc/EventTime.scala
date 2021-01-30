@@ -17,13 +17,14 @@ import config.Config.{EventTimeConfig => Config}
 object EventTime {
 
   /** Move an instant (in millis) to the beginning of a Window */
-  def toWindowStart(createdAt: Long): Long = createdAt - (createdAt % Config.windowSizeMs)
+  def toWindowStart(createdAt: EpochMillis): WindowStart = createdAt - (createdAt % Config.windowSizeMs)
 
-  def toWindowEnd(createdAt: Long): Long = toWindowStart(createdAt) + Config.windowSizeMs - 1
+  def toWindowEnd(createdAt: EpochMillis): EpochMillis = toWindowStart(createdAt) + Config.windowSizeMs - 1
 
   /** Does an instant (in millis) fall into a fully-expired window?
     * We compare the instant that the window ends to the watermark position (relative to now):
     * if the end of the window is before the watermark, that window is fully expired.
     */
-  def isExpired(createdAt: Long, now: Long): Boolean = toWindowEnd(createdAt) < (now - Config.watermarkMs)
+  def isExpired(createdAt: EpochMillis, now: EpochMillis): Boolean =
+    toWindowEnd(createdAt) < (now - Config.watermarkMs)
 }
