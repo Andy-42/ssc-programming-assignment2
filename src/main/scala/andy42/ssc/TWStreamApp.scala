@@ -24,7 +24,7 @@ object TWStreamApp extends IOApp {
       // Map the incoming tweets in JSON format to extracts with only the aspects this stream monitors.
       // The presumption is that this stage will use significant CPU, so we can increase the concurrency
       // to use available core to increase overall throughput.
-      .parEvalMapUnordered(Config.extractConcurrency)(TweetExtract.decode)
+      .parEvalMapUnordered(maxConcurrent = Config.extractConcurrency)(TweetExtract.decode)
       .flatMap(identity)
 
       // Group in chunks as large as possible, but put an upper limit on how long we will wait before emitting.
