@@ -183,16 +183,7 @@ This project was a first attempt at using FS2 and Cats Effect.
 I implemented a couple of variations on the stream processing
 (e.g., chunked vs. one-at-a-time aggregation). The next round of
 learning steps include:
-* What is the performance impact of chunked vs. one-at-a-time processing?
 * Support for increasing concurrency in TweetExtract was implemented in the TWStreamApp stream.
   Investigate how changing the level of concurrency scale in terms of throughput.
-* The initial design for the stream grouped chunks of `TweetExtract` by their `TweetExtract.createdAt`.
-  The downstream processing in `WindowSummaries` required that the incoming stream be organized
-  that way, and it enabled some code simplification. What we would really like is to
-  ensure that the size of the chunks are bounded, and that their delivery is also not delayed,
-  so try using `Stream.groupWithin` to get that effect and rework `WindowSummaries.combineChunkedTweet`
-  to deal with the possiblity of a chunk containing multiple `createdAt` times seems worth doing.
-  It is not a huge change, and `WindowSummaries` is ripe for refactoring anyway.
-  It can still take advantage of the fact that the stream is mostly ordered.
 * Learning about Cats Effect in general. I learned just enough to get by
   in this project, and so now I have a better idea of what I need to learn!
