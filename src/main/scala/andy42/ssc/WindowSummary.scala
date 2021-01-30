@@ -5,7 +5,7 @@ import fs2.Chunk
 
 /** The summary of tweets within a given window.
   *
-  * @param windowStart          The time that the tweet was created, adjusted to the start of the window
+  * @param windowStart        The time that the tweet was created, adjusted to the start of the window
   *                           that the original created_at falls into.
   * @param lastWindowUpdate   The last time that an update was applied to this window summary.
   * @param tweets             The count of the number of tweets in this window.

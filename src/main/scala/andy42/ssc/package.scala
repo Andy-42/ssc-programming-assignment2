@@ -8,6 +8,4 @@ package object ssc {
   type Count = Long
   type Rate = Double
   type Percent = Double
-
-
 }

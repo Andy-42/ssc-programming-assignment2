@@ -1,10 +1,9 @@
 package andy42.ssc
 
-import org.scalatest._
-import flatspec._
 import io.circe._
 import io.circe.parser._
-import matchers._
+import org.scalatest.flatspec._
+import org.scalatest.matchers._
 
 class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
 
