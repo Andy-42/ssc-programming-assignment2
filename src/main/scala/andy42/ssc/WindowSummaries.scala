@@ -54,14 +54,13 @@ object WindowSummaries {
 
       _ = windowSummaries.rateMeter.mark(tweetExtracts.size.toLong)
 
-      // TODO: Add the summary time using now to WindowSummary and report it in WindowSummaryOutput
-
       // Update the window summaries for each distinct window start time, but only for non-expired windows.
       updatedSummaries = windowSummaries.summariesByWindow ++ (for {
         windowStart <- tweetExtracts.foldLeft(Set.empty[Long])(_ + _.createdAt)
         if !EventTime.isExpired(createdAt = windowStart, now = now)
-        previousSummaryForWindow = windowSummaries.summariesByWindow.getOrElse(windowStart, WindowSummary(windowStart))
-      } yield windowStart -> previousSummaryForWindow.add(tweetExtracts))
+        previousSummaryForWindow = windowSummaries.summariesByWindow.getOrElse(
+          key = windowStart, default = WindowSummary(windowStart = windowStart, now = now))
+      } yield windowStart -> previousSummaryForWindow.add(tweetExtracts, now))
 
       // Separate expired windows from windows for which collection is ongoing
       (expired, ongoing) = updatedSummaries.partition { case (createdAt, _) =>

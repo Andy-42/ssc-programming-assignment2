@@ -7,6 +7,7 @@ import fs2.Chunk
   *
   * @param createdAt          The time that the tweet was created, adjusted to the start of the window
   *                           that the original created_at falls into.
+  * @param lastWindowUpdate   The last time that an update was applied to this window summary.
   * @param tweets             The count of the number of tweets in this window.
   * @param tweetsWithEmoji    The count of tweets in this window that contain at least one emoji in the text.
   * @param tweetsWithUrl      The count of tweets in this window that contain at least one URL in the text.
@@ -16,6 +17,7 @@ import fs2.Chunk
   * @param emojiCounts        The count of the number of times each emoji (or emoji sequence) occurs in this window.
   */
 case class WindowSummary(createdAt: Long,
+                         lastWindowUpdate: Long,
                          tweets: Long,
                          tweetsWithEmoji: Long,
                          tweetsWithUrl: Long,
@@ -27,12 +29,13 @@ case class WindowSummary(createdAt: Long,
   import WindowSummary.addCounts
 
   /** Add the occurrences from a Chunk[TweetExtract] to a existing WindowSummary */
-  def add(tweetExtracts: Chunk[TweetExtract]): WindowSummary = {
+  def add(tweetExtracts: Chunk[TweetExtract], now: Long): WindowSummary = {
 
     def tweetsInThisWindow: Iterator[TweetExtract] = tweetExtracts.iterator.filter(_.createdAt == createdAt)
 
     WindowSummary(
       createdAt = createdAt,
+      lastWindowUpdate = now,
       tweets = tweets + tweetExtracts.size,
 
       tweetsWithEmoji = tweetsWithEmoji + tweetsInThisWindow.count(_.containsEmoji),
@@ -48,9 +51,10 @@ case class WindowSummary(createdAt: Long,
 
 object WindowSummary {
 
-  def apply(createdAt: Long) =
+  def apply(windowStart: Long, now: Long) =
     new WindowSummary(
-      createdAt = createdAt,
+      createdAt = windowStart,
+      lastWindowUpdate = now,
       tweets = 0,
       tweetsWithEmoji = 0,
       tweetsWithUrl = 0,

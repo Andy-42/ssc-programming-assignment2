@@ -10,6 +10,7 @@ import java.time.Instant
   *
   * @param windowStart               The window start as an ISO8601 string.
   * @param windowEnd                 The window end as an ISO8601 string.
+  * @param windowLastUpdate          The instant when the last update to this window was applied.
   * @param totalTweetCount           The total number of tweets seen in the scan, including tweets not counted in any
   *                                  window.
   * @param tweetCountThisWindow      The total number of tweets that were counted in this window.
@@ -28,6 +29,7 @@ import java.time.Instant
   */
 case class WindowSummaryOutput(windowStart: String,
                                windowEnd: String,
+                               windowLastUpdate: String,
 
                                totalTweetCount: Long,
 
@@ -54,6 +56,7 @@ object WindowSummaryOutput {
     WindowSummaryOutput(
       windowStart = Instant.ofEpochMilli(windowSummary.createdAt).toString,
       windowEnd = Instant.ofEpochMilli(EventTime.toWindowEnd(windowSummary.createdAt)).toString,
+      windowLastUpdate = Instant.ofEpochMilli(windowSummary.lastWindowUpdate).toString,
 
       totalTweetCount = rateMeter.getCount,
 
@@ -73,7 +76,7 @@ object WindowSummaryOutput {
     )
   }
 
-  /** Get the top N values by counts in descending order.  */
+  /** Get the top N values by counts in descending order. */
   def top(counts: Map[String, Long]): Seq[String] =
     counts.toSeq
       .sortBy { case (_, count) => -count } // descending
