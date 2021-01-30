@@ -1,6 +1,6 @@
 package andy42.ssc
 
-import andy42.ssc.config.Config.SummaryOutputConfig
+import andy42.ssc.config.Config.{SummaryOutputConfig => Config}
 import com.codahale.metrics.Meter
 
 import java.time.Instant
@@ -77,6 +77,6 @@ object WindowSummaryOutput {
   def top(counts: Map[String, Long]): Seq[String] =
     counts.toSeq
       .sortBy { case (_, count) => -count } // descending
-      .take(SummaryOutputConfig.topN)
+      .take(Config.topN)
       .map { case (key, _) => key } // Keep the keys only
 }

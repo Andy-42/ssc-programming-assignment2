@@ -26,7 +26,6 @@ case class WindowSummary(createdAt: Long,
 
   import WindowSummary.addCounts
 
-
   /** Add the occurrences from a Chunk[TweetExtract] to a existing WindowSummary */
   def add(tweetExtracts: Chunk[TweetExtract]): WindowSummary = {
 

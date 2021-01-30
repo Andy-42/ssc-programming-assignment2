@@ -1,6 +1,6 @@
 package andy42.ssc
 
-import andy42.ssc.config.Config.StreamParametersConfig
+import andy42.ssc.config.Config.{StreamParametersConfig => Config}
 import cats.effect._
 import fs2.Stream
 import fs2.io.stdout
@@ -24,11 +24,11 @@ object TWStreamApp extends IOApp {
       // Map the incoming tweets in JSON format to extracts with only the aspects this stream monitors.
       // The presumption is that this stage will use significant CPU, so we can increase the concurrency
       // to use available core to increase overall throughput.
-      .parEvalMapUnordered(StreamParametersConfig.extractConcurrency)(TweetExtract.decode)
+      .parEvalMapUnordered(Config.extractConcurrency)(TweetExtract.decode)
       .flatMap(identity)
 
       // Group in chunks as large as possible, but put an upper limit on how long we will wait before emitting.
-      .groupWithin(n = StreamParametersConfig.chunkSizeLimit, d = StreamParametersConfig.chunkGroupTimeout)
+      .groupWithin(n = Config.chunkSizeLimit, d = Config.chunkGroupTimeout)
 
       // Aggregate tweet extracts in windows, and emit them as windows expire.
       .evalScan((WindowSummaries(), Stream.emits(Seq.empty[WindowSummaryOutput]))) {

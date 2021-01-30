@@ -1,7 +1,7 @@
 package andy42.ssc
 
-import config.Config.EventTimeConfig
-
+import config.Config.{EventTimeConfig => Config}
+ 
 
 /** Functions for segmenting an event stream into tumbling windows.
   *
@@ -17,13 +17,13 @@ import config.Config.EventTimeConfig
 object EventTime {
 
   /** Move an instant (in millis) to the beginning of a Window */
-  def toWindowStart(createdAt: Long): Long = createdAt - (createdAt % EventTimeConfig.windowSizeMs)
+  def toWindowStart(createdAt: Long): Long = createdAt - (createdAt % Config.windowSizeMs)
 
-  def toWindowEnd(createdAt: Long): Long = toWindowStart(createdAt) + EventTimeConfig.windowSizeMs - 1
+  def toWindowEnd(createdAt: Long): Long = toWindowStart(createdAt) + Config.windowSizeMs - 1
 
   /** Does an instant (in millis) fall into a fully-expired window?
     * We compare the instant that the window ends to the watermark position (relative to now):
     * if the end of the window is before the watermark, that window is fully expired.
     */
-  def isExpired(createdAt: Long, now: Long): Boolean = toWindowEnd(createdAt) < (now - EventTimeConfig.watermarkMs)
+  def isExpired(createdAt: Long, now: Long): Boolean = toWindowEnd(createdAt) < (now - Config.watermarkMs)
 }

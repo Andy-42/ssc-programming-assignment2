@@ -1,6 +1,6 @@
 package andy42.ssc
 
-import andy42.ssc.config.Config.TwitterStreamConfig
+import andy42.ssc.config.Config.{TwitterStreamConfig => Config}
 import cats.effect._
 import fs2.Stream
 import io.circe.Json
@@ -28,8 +28,8 @@ class TWStream[F[_] : ConcurrentEffect : ContextShift] {
     * OAuth signing is an effect due to generating a nonce for each `Request`.
     */
   def sign(req: Request[F]): F[Request[F]] = {
-    val consumer = oauth1.Consumer(TwitterStreamConfig.apiKey, TwitterStreamConfig.apiKeySecret)
-    val token = oauth1.Token(TwitterStreamConfig.accessToken, TwitterStreamConfig.accessTokenSecret)
+    val consumer = oauth1.Consumer(Config.apiKey, Config.apiKeySecret)
+    val token = oauth1.Token(Config.accessToken, Config.accessTokenSecret)
     oauth1.signRequest(req, consumer, callback = None, verifier = None, token = Some(token))
   }
 
