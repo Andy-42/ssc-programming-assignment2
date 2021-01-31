@@ -7,7 +7,7 @@ import fs2.{Pure, Stream}
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import scala.annotation.tailrec
+import java.util.regex.Matcher
 import scala.jdk.CollectionConverters._
 import scala.util.{Either, Try}
 
@@ -84,19 +84,13 @@ object TweetExtract {
 
   def extractHashTags(text: String): Vector[String] = extractor.extractHashtags(text).asScala.toVector
 
-  def extractEmojis(text: String): Vector[String] = {
-
-    val matcher = TwitterTextEmojiRegex.VALID_EMOJI_PATTERN.matcher(text)
-
-    @tailrec
-    def accumulate(r: List[String] = Nil): List[String] =
+  def extractEmojis(text: String): Vector[String] =
+    Iterator.unfold(TwitterTextEmojiRegex.VALID_EMOJI_PATTERN.matcher(text)) { matcher =>
       if (matcher.find())
-        accumulate(r = matcher.group() :: r)
+        Some((matcher.group, matcher))
       else
-        r
-
-    accumulate().toVector
-  }
+        None
+    }.toVector
 
   /** Extract the domain (the host) from an URL
     *
@@ -104,14 +98,11 @@ object TweetExtract {
     * validated by the extraction regular expression), if an URL cannot be parsed at this point,
     * it is silently discarded.
     */
-  def extractUrlDomains(text: String): Vector[String] = {
-    val urlDomains = for {
+  def extractUrlDomains(text: String): Vector[String] =
+    (for {
       urlString <- extractor.extractURLs(text).asScala
       url <- Try(new java.net.URL(urlString)).toOption
-    } yield url.getHost
-
-    urlDomains.toVector
-  }
+    } yield url.getHost).toVector
 
   def isPhotoDomain(domain: String): Boolean =
     domain == "www.instagram.com" || domain == "pic.twitter.com"

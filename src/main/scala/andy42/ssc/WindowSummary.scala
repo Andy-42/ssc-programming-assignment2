@@ -69,12 +69,8 @@ object WindowSummary {
     occurrences.groupMapReduce(identity)(_ => 1L)(_ + _)
 
   /** Add the count of each occurrence of a key to the counts. */
-  def addCounts(counts: Map[String, Count], occurrences: Seq[String]): Map[String, Count] = {
-
-    val updatedCounts = occurrenceCounts(occurrences).map { case (key, count) =>
+  def addCounts(counts: Map[String, Count], occurrences: Seq[String]): Map[String, Count] =
+    counts ++ occurrenceCounts(occurrences).map { case (key, count) =>
       key -> (count + counts.getOrElse(key, 0L))
     }
-
-    counts ++ updatedCounts
-  }
 }
