@@ -98,82 +98,44 @@ every 5 seconds.
 
 ```json
 {
-  "windowStart" : "2021-01-28T19:18:15Z",
-  "windowEnd" : "2021-01-28T19:18:19.999Z",
-  "totalTweetCount" : 1096,
-  "tweetCountThisWindow" : 162,
-  "oneMinuteRate" : 12.332114002054722,
-  "fiveMinuteRate" : 2.782391759192488,
-  "fifteenMinuteRate" : 0.9467950825433815,
+  "windowStart" : "2021-01-31T14:50:45Z",
+  "windowEnd" : "2021-01-31T14:50:49.999Z",
+  "windowLastUpdate" : "2021-01-31T14:50:55.882Z",
+  "totalTweetCount" : 842,
+  "tweetCountThisWindow" : 184,
+  "oneMinuteRate" : 39.05474750745308,
+  "fiveMinuteRate" : 37.26610500223038,
+  "fifteenMinuteRate" : 36.95623228626191,
   "topEmojis" : [
-    "😭",
-    "😂",
-    "🤣",
-    "🔥",
+    "🏆",
+    "☺️",
     "🥺",
-    "🦋",
-    "⚰️",
-    "✨",
-    "💕",
-    "😍"
-  ],
-  "topHashtags" : [
-    "VenezuelaTierraDePaz",
-    "USA",
-    "KisanAndolan",
-    "मोदी_कायर_है",
-    "28Ene",
-    "プチプラ",
-    "소정환",
-    "icanhelpyouwiththat",
-    "TrueBeautyEp14",
-    "SaveJavidDehghan"
-  ],
-  "topDomains" : [
-    "t.co"
-  ],
-  "tweetsWithEmojiPercent" : 26.54320987654321,
-  "tweetsWithUrlPercent" : 38.888888888888886,
-  "tweetsWithPhotoUrlPercent" : 38.888888888888886
-}
-{
-  "windowStart" : "2021-01-28T19:18:20Z",
-  "windowEnd" : "2021-01-28T19:18:24.999Z",
-  "totalTweetCount" : 1330,
-  "tweetCountThisWindow" : 236,
-  "oneMinuteRate" : 15.10400512058432,
-  "fiveMinuteRate" : 3.513244538898302,
-  "fifteenMinuteRate" : 1.2019368376477286,
-  "topEmojis" : [
-    "😂",
-    "🤣",
-    "🤬",
-    "🔥",
-    "Ⓜ️",
+    "💜",
+    "💙",
+    "😉",
+    "😭",
+    "❗",
     "❤",
-    "✍️",
-    "💬",
-    "💻",
-    "🥺"
+    "✨"
   ],
   "topHashtags" : [
-    "NBAAllStar",
-    "VerdadesOcultas",
-    "ホリミヤ",
-    "warwararat",
-    "현아",
-    "bbillkin",
-    "tzvip",
-    "COVID19",
-    "Polish",
-    "AgustD"
+    "분명히_더행복할_스물여섯_도영이",
+    "OurPreciousDoyoungDay",
+    "HAPPYDOYOUNGDAY",
+    "주헌",
+    "MobileBNK48",
+    "EnVen",
+    "분명히_더행복할_26살_도영이",
+    "오늘의ENHYPEN",
+    "세븐틴",
+    "오늘의방탄"
   ],
   "topDomains" : [
     "t.co"
   ],
-  "tweetsWithEmojiPercent" : 21.1864406779661,
-  "tweetsWithUrlPercent" : 36.440677966101696,
-  "tweetsWithPhotoUrlPercent" : 36.440677966101696
+  "tweetsWithEmojiPercent" : 16.304347826086957,
+  "tweetsWithUrlPercent" : 28.804347826086957,
+  "tweetsWithPhotoUrlPercent" : 28.804347826086957
 }
 ```
 
