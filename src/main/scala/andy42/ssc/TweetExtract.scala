@@ -7,7 +7,6 @@ import fs2.{Pure, Stream}
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import java.util.regex.Matcher
 import scala.jdk.CollectionConverters._
 import scala.util.{Either, Try}
 

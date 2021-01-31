@@ -17,7 +17,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    TweetExtract.decode(rawJson) shouldBe Some(
+    TweetExtract.decode(rawJson).unsafeRunSync().toList shouldBe List(
       TweetExtract(windowStart = 1519765900000L,
         hashTags = Vector.empty,
         urlDomains = Vector.empty,
@@ -34,7 +34,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    TweetExtract.decode(rawJson1) shouldBe None
+    TweetExtract.decode(rawJson1).unsafeRunSync().toList shouldBe Nil
 
     val rawJson2: Json = parse(
       """
@@ -45,7 +45,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    TweetExtract.decode(rawJson2) shouldBe None
+    TweetExtract.decode(rawJson2).unsafeRunSync().toList shouldBe Nil
   }
 
   it should "decode JSON with an invalid created_at value to None" in {
@@ -58,7 +58,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    TweetExtract.decode(rawJson1) shouldBe None
+    TweetExtract.decode(rawJson1).unsafeRunSync().toList shouldBe Nil
   }
 
   it should "move the createdAt to the start of that period" in {
@@ -74,7 +74,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    TweetExtract.decode(rawJson) shouldBe Some(
+    TweetExtract.decode(rawJson).unsafeRunSync().toList shouldBe List(
       // With the default configuration, createdAt would be 1519765901000 if WindowSpec.toWindowStart was not applied.
       TweetExtract(windowStart = 1519765900000L,
         hashTags = Vector.empty,
@@ -94,12 +94,11 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    TweetExtract.decode(rawJson) shouldBe Some(
+    TweetExtract.decode(rawJson).unsafeRunSync().toList shouldBe List(
       TweetExtract(windowStart = 1519765900000L,
         hashTags = Vector.empty,
         urlDomains = Vector.empty,
-        // Note that the order is reversed relative to the order in the original text
-        emojis = Vector("🏴󠁧󠁢󠁥󠁮󠁧󠁿", "🧕🏾", "🧕", "🤪")))
+        emojis = Vector("🤪", "🧕", "🧕🏾", "🏴󠁧󠁢󠁥󠁮󠁧󠁿")))
   }
 
   it should "extract URL domains from text" in {
@@ -112,7 +111,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    TweetExtract.decode(rawJson) shouldBe Some(
+    TweetExtract.decode(rawJson).unsafeRunSync().toList shouldBe List(
       TweetExtract(windowStart = 1519765900000L,
         hashTags = Vector.empty,
         urlDomains = Vector("foo.com", "twitter.com"),
@@ -130,7 +129,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    TweetExtract.decode(rawJson) shouldBe Some(
+    TweetExtract.decode(rawJson).unsafeRunSync().toList shouldBe List(
       TweetExtract(windowStart = 1519765900000L,
         hashTags = Vector("hello", "world"),
         urlDomains = Vector.empty,

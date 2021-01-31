@@ -24,7 +24,7 @@ class EventTimeSpec extends AnyFlatSpec with should.Matchers {
     EventTime.toWindowStart(initial + Config.windowSizeMs) shouldBe initial + Config.windowSizeMs
 
     // toWindowEnd aligns a time to the last tick in that window
-    EventTime.toWindowEnd(initialRaw) shouldBe initial + Config.windowSizeMs + 1
+    EventTime.toWindowEnd(initialRaw) shouldBe initial + Config.windowSizeMs - 1
   }
 
   "EventTime.isExpired" should "determine if a point in time is expired relative to the watermark" in {
