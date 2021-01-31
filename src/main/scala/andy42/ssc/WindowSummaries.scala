@@ -11,7 +11,6 @@ import scala.concurrent.duration.MILLISECONDS
 /** The current summary state.
   *
   * @param summariesByWindow The summaries being collected for each window.
-  *                          The key is the created_at time (adjusted to the start of the window).
   * @param rateMeter         A DropWizard rate meter for calculating tweet rates and total counts.
   *                          Note that we only count tweets that make it to this summary calculation stage,
   *                          and ignore other tweets that have been discarded at earlier stages of processing.
@@ -36,15 +35,9 @@ object WindowSummaries {
     * which is intended to be used within a scan of a TweetExtract stream,
     * producing a Stream of WindowSummaryOutput.
     *
-    * This implementation requires that all the elements of the Chunk[TweetExtract]
-    * fall within the same window. This simplifies the processing here, and is likely to
-    * work well assuming that the stream of tweets are delivered in approximately real time.
-    * See: `Stream.groupAdjacentByLimit`
-    * That assumption remains to be tested!
-    *
     * @param windowSummaries an existing WindowSummaries.
     * @param tweetExtracts   A Chunk[TweetExtract].
-    * @return A tuple containing the next state for window summaries, and an iterable containing
+    * @return A tuple containing the next state for window summaries, and a pure Stream containing
     *         the output summary for any windows that expired.
     */
   def combineChunkedTweet[F[_] : Sync : Clock](windowSummaries: WindowSummaries, tweetExtracts: Chunk[TweetExtract])

@@ -16,7 +16,7 @@ import config.Config.{EventTimeConfig => Config}
   */
 object EventTime {
 
-  /** Move an instant (in millis) to the beginning of a Window */
+  /** Move an instant (in millis) to the start of a window */
   def toWindowStart(createdAt: EpochMillis): WindowStart = createdAt - (createdAt % Config.windowSizeMs)
 
   def toWindowEnd(createdAt: EpochMillis): EpochMillis = toWindowStart(createdAt) + Config.windowSizeMs - 1

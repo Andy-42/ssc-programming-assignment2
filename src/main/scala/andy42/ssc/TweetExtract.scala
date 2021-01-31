@@ -51,7 +51,7 @@ object TweetExtract {
     * This implementation is based on regular expressions.
     *
     * @param json The `io.circe.Json` instance to decode.
-    * @return The optional decoded tweet. A failure to decode the tweet results in `None`
+    * @return If the tweet decoded successfully, a singleton Stream, otherwise an empty Stream.
     */
   def decode[F[_]](json: io.circe.Json): IO[Stream[Pure, TweetExtract]] = IO {
 

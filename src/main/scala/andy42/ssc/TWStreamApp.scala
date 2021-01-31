@@ -15,7 +15,7 @@ object TWStreamApp extends IOApp {
 
     implicit val blocker: Blocker = Blocker.liftExecutionContext(scala.concurrent.ExecutionContext.global)
 
-    // Required by WindowsSummaries.combineTweet/combineChunkedTweet
+    // Required by WindowsSummaries.combineChunkedTweet
     implicit val clock: Clock[IO] = Clock.create[IO]
 
     // Start with the stream of Tweet JSON coming from the Twitter sample stream.
@@ -37,7 +37,7 @@ object TWStreamApp extends IOApp {
       }
       .flatMap { case (_, output: Stream[Pure, WindowSummaryOutput]) => output }
 
-      // For demo purposes, print a JSON representation to the console as they are emitted
+      // For demo purposes, print a JSON representation to the console as WindowSummaryOutput are emitted
       .map(_.asJson.spaces2 + "\n")
       .through(utf8Encode)
       .through(stdout(blocker))

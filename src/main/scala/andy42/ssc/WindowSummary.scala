@@ -70,7 +70,7 @@ object WindowSummary {
 
   /** Add the count of each occurrence of a key to the counts. */
   def addCounts(counts: Map[String, Count], occurrences: Seq[String]): Map[String, Count] =
-    counts ++ occurrenceCounts(occurrences).map { case (key, count) =>
-      key -> (count + counts.getOrElse(key, 0L))
+    counts ++ occurrenceCounts(occurrences).map { case (occurrence, count) =>
+      occurrence -> (count + counts.getOrElse(occurrence, 0L))
     }
 }
