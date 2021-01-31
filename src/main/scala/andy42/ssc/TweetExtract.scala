@@ -33,7 +33,7 @@ case class TweetExtract(windowStart: WindowStart,
 
   def containsUrl: Boolean = urlDomains.nonEmpty
 
-  def containsPhotoUrl: Boolean = urlDomains.exists(TweetExtract.isPhotoDomain)
+  def containsPhotoUrl: Boolean = urlDomains.exists(TweetExtract.photoDomains.contains)
 }
 
 object TweetExtract {
@@ -76,7 +76,7 @@ object TweetExtract {
   // For decoding tweet timestamps.
   private[this] val formatter = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss Z yyyy", Locale.ENGLISH)
 
-  // Use the twitter text library Extractor to extract hashtags from text
+  // Use the twitter text library Extractor to extract hashtags and URLs from text
   private[this] val extractor = new Extractor()
 
   // Use the twitter text library pattern for extracting emoji from text
@@ -89,7 +89,7 @@ object TweetExtract {
 
   def extractEmojis(text: String): Vector[String] = emojiRegex.findAllIn(text).toVector
 
-  /** Extract the domain (the host) from an URL
+  /** Extract URLs from `text`, and then the domains (host) from the URL text.
     *
     * While we would expect that all URLs will be valid (because they have already been
     * validated by the extraction regular expression), if an URL cannot be parsed at this point,
@@ -101,6 +101,5 @@ object TweetExtract {
       url <- Try(new java.net.URL(urlString)).toOption
     } yield url.getHost).toVector
 
-  def isPhotoDomain(domain: String): Boolean =
-    domain == "www.instagram.com" || domain == "pic.twitter.com"
+  private val photoDomains = Set("www.instagram.com", "pic.twitter.com")
 }
