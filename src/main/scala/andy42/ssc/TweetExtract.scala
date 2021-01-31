@@ -8,6 +8,7 @@ import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import scala.jdk.CollectionConverters._
+import scala.util.matching.Regex
 import scala.util.{Either, Try}
 
 
@@ -75,21 +76,18 @@ object TweetExtract {
   // For decoding tweet timestamps.
   private[this] val formatter = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss Z yyyy", Locale.ENGLISH)
 
-  // Extractor is from the Twitter-provided library for extracting from a Tweet's text
+  // Use the twitter text library Extractor to extract hashtags from text
   private[this] val extractor = new Extractor()
+
+  // Use the twitter text library pattern for extracting emoji from text
+  private[this] val emojiRegex = new Regex(TwitterTextEmojiRegex.VALID_EMOJI_PATTERN.pattern)
 
   def parseDate(dateString: String): Either[Throwable, EpochMillis] =
     Try(Instant.from(formatter.parse(dateString)).toEpochMilli).toEither
 
   def extractHashTags(text: String): Vector[String] = extractor.extractHashtags(text).asScala.toVector
 
-  def extractEmojis(text: String): Vector[String] =
-    Iterator.unfold(TwitterTextEmojiRegex.VALID_EMOJI_PATTERN.matcher(text)) { matcher =>
-      if (matcher.find())
-        Some((matcher.group, matcher))
-      else
-        None
-    }.toVector
+  def extractEmojis(text: String): Vector[String] = emojiRegex.findAllIn(text).toVector
 
   /** Extract the domain (the host) from an URL
     *
