@@ -8,12 +8,20 @@ import fs2.text.utf8Encode
 import io.circe.generic.auto._
 import io.circe.syntax._
 
+import java.util.concurrent.Executors
+import scala.concurrent.ExecutionContext
+
 
 object TWStreamApp extends IOApp {
 
   def run(args: List[String]): IO[ExitCode] = {
 
-    implicit val blocker: Blocker = Blocker.liftExecutionContext(scala.concurrent.ExecutionContext.global)
+    // Writing to stdout blocks, so it should use this separate
+    // Blocker execution context to avoid blocking the general-purpose pool.
+    // Note that this is not passed an implicit.
+    val blocker: Blocker = Blocker.liftExecutionContext(
+      ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor())
+    )
 
     // Required by WindowsSummaries.combineChunkedTweet
     implicit val clock: Clock[IO] = Clock.create[IO]
