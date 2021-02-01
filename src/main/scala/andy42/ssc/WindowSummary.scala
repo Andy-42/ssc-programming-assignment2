@@ -78,8 +78,6 @@ object WindowSummary {
     *  - groupMapReduce creates a mutable.Map and then converts it to an immutable.Map before returning.
     *    While we prefer immutable, this mutable state is transient and does not escape the context of
     *    the addCounts calculation. There is absolutely no need to perform this copy.
-    *  - groupMapReduce uses mutable.Map.get, which creates a lot of transient Some values, which are
-    *    easily avoided by this algorithm.
     *
     * The net effect is the same, but this significantly reduces heap allocation.
     */
