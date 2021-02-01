@@ -2,6 +2,9 @@ package andy42.ssc
 
 import fs2.Chunk
 
+import scala.annotation.tailrec
+import scala.collection.mutable
+
 
 /** The summary of tweets within a given window.
   *
@@ -42,9 +45,9 @@ case class WindowSummary(windowStart: WindowStart,
       tweetsWithUrl = tweetsWithUrl + tweetsInThisWindow.count(_.containsUrl),
       tweetsWithPhotoUrl = tweetsWithPhotoUrl + tweetsInThisWindow.count(_.containsPhotoUrl),
 
-      hashtagCounts = addCounts(hashtagCounts, tweetsInThisWindow.flatMap(_.hashTags).toVector),
-      domainCounts = addCounts(domainCounts, tweetsInThisWindow.flatMap(_.urlDomains).toVector),
-      emojiCounts = addCounts(emojiCounts, tweetsInThisWindow.flatMap(_.emojis).toVector)
+      hashtagCounts = addCounts(hashtagCounts, tweetsInThisWindow.flatMap(_.hashTags)),
+      domainCounts = addCounts(domainCounts, tweetsInThisWindow.flatMap(_.urlDomains)),
+      emojiCounts = addCounts(emojiCounts, tweetsInThisWindow.flatMap(_.emojis))
     )
   }
 }
@@ -64,12 +67,40 @@ object WindowSummary {
       emojiCounts = Map.empty
     )
 
-  /** Calculate the count for each occurrence of a String */
-  def occurrenceCounts(occurrences: Seq[String]): Map[String, Count] =
-    occurrences.groupMapReduce(identity)(_ => 1L)(_ + _)
+  /** Calculate the count for each occurrence of a String.
+    *
+    * This method is approximately equivalent to calling:
+    *   occurrences.toSeq.groupMapReduce(identity)(_ => 1L)(_ + _)
+    * ...but saves creating a significant amount of heap noise:
+    *  - The Iterator does not need to be forced to an Iterable (i.e., copy Iterator to a List via toSeq
+    *    in order to make it work with groupMapReduce). Converting an Iterator -> Iterable and then iterating
+    *    exactly once seems wasteful!
+    *  - groupMapReduce creates a mutable.Map and then converts it to an immutable.Map before returning.
+    *    While we prefer immutable, this mutable state is transient and does not escape the context of
+    *    the addCounts calculation. There is absolutely no need to perform this copy.
+    *  - groupMapReduce uses mutable.Map.get, which creates a lot of transient Some values, which are
+    *    easily avoided by this algorithm.
+    *
+    * The net effect is the same, but this significantly reduces heap allocation.
+    */
+  def occurrenceCounts(occurrences: Iterator[String]): mutable.Map[String, Count] = {
+    val m = mutable.Map.empty[String, Count]
+
+    @tailrec
+    def accumulate(): Unit = {
+      if (occurrences.hasNext) {
+        val k = occurrences.next()
+        m += k -> m.getOrElse(k, 0L)
+        accumulate()
+      }
+    }
+
+    accumulate()
+    m
+  }
 
   /** Add the count of each occurrence of a key to the counts. */
-  def addCounts(counts: Map[String, Count], occurrences: Seq[String]): Map[String, Count] =
+  def addCounts(counts: Map[String, Count], occurrences: Iterator[String]): Map[String, Count] =
     counts ++ occurrenceCounts(occurrences).map { case (occurrence, count) =>
       occurrence -> (count + counts.getOrElse(occurrence, 0L))
     }
