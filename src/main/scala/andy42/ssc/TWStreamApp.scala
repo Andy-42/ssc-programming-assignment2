@@ -23,8 +23,9 @@ object TWStreamApp extends IOApp {
       ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor())
     )
 
-    // Required by WindowsSummaries.combineChunkedTweet
-    implicit val clock: Clock[IO] = Clock.create[IO]
+    // Combines a chunk of tweets into a WindowSummaries.
+    // This uses a Clock to determine when windows are expired.
+    val summaryCombiner = WindowSummaries.combineChunkedTweet[IO](Clock[IO]) _
 
     // Start with the stream of Tweet JSON coming from the Twitter sample stream.
     new TWStream[IO].jsonStream()
@@ -40,8 +41,7 @@ object TWStreamApp extends IOApp {
 
       // Aggregate tweet extracts in windows, and emit them as windows expire.
       .evalScan((WindowSummaries(), Stream.emits(Seq.empty[WindowSummaryOutput]))) {
-        case ((windowSummaries, _), tweetExtractChunk) =>
-          WindowSummaries.combineChunkedTweet[IO](windowSummaries, tweetExtractChunk)
+        case ((windowSummaries, _), tweetExtractChunk) => summaryCombiner(windowSummaries, tweetExtractChunk)
       }
       .flatMap { case (_, output: Stream[Pure, WindowSummaryOutput]) => output }
 

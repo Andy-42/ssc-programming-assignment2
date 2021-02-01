@@ -35,15 +35,17 @@ object WindowSummaries {
     * which is intended to be used within a scan of a TweetExtract stream,
     * producing a Stream of WindowSummaryOutput.
     *
-    * @param windowSummaries an existing WindowSummaries.
+    * @param clock           The clock to determine when a window has expired.
+    * @param windowSummaries An existing WindowSummaries.
     * @param tweetExtracts   A Chunk[TweetExtract].
     * @return A tuple containing the next state for window summaries, and a pure Stream containing
     *         the output summary for any windows that expired.
     */
-  def combineChunkedTweet[F[_] : Sync : Clock](windowSummaries: WindowSummaries, tweetExtracts: Chunk[TweetExtract])
+  def combineChunkedTweet[F[_] : Sync](clock: Clock[F])
+                                      (windowSummaries: WindowSummaries, tweetExtracts: Chunk[TweetExtract])
   : F[(WindowSummaries, Stream[Pure, WindowSummaryOutput])] =
     for {
-      now <- Clock[F].realTime(MILLISECONDS)
+      now <- clock.realTime(MILLISECONDS)
 
       _ = windowSummaries.rateMeter.mark(tweetExtracts.size.toLong)
 
