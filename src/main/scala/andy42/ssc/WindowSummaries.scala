@@ -51,7 +51,7 @@ object WindowSummaries {
 
       // Update the window summaries for each distinct window start time, but only for non-expired windows.
       updatedSummaries = windowSummaries.summariesByWindow ++ (for {
-        windowStart <- tweetExtracts.foldLeft(Set.empty[WindowStart])(_ + _.windowStart) // distinct
+        windowStart <- tweetExtracts.iterator.map(_.windowStart).distinct
         if !EventTime.isExpired(createdAt = windowStart, now = now)
         previousSummaryForWindow = windowSummaries.summariesByWindow.getOrElse(
           key = windowStart, default = WindowSummary(windowStart = windowStart, now = now))
