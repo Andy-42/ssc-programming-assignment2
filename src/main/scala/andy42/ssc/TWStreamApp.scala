@@ -2,9 +2,9 @@ package andy42.ssc
 
 import andy42.ssc.config.Config.{StreamParametersConfig => Config}
 import cats.effect._
-import fs2.{Pure, Stream}
 import fs2.io.stdout
 import fs2.text.utf8Encode
+import fs2.{Pure, Stream}
 import io.circe.generic.auto._
 import io.circe.syntax._
 
@@ -46,7 +46,8 @@ object TWStreamApp extends IOApp {
       .flatMap { case (_, output: Stream[Pure, WindowSummaryOutput]) => output }
 
       // For demo purposes, print a JSON representation to the console as WindowSummaryOutput are emitted
-      .map(_.asJson.spaces2 + "\n")
+      .map(_.asJson.spaces2)
+      .intersperse("\n")
       .through(utf8Encode)
       .through(stdout(blocker))
 
