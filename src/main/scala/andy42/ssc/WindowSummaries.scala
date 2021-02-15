@@ -1,9 +1,11 @@
 package andy42.ssc
 
-import cats.effect.{Clock, Sync}
-import cats.syntax.functor._
+import andy42.ssc.config.Config
+import cats.FlatMap
+import cats.effect.Clock
 import com.codahale.metrics.Meter
 import fs2.{Chunk, Pure, Stream}
+import cats.syntax.functor._
 
 import scala.concurrent.duration.MILLISECONDS
 
@@ -29,43 +31,37 @@ object WindowSummaries {
 
   def apply(): WindowSummaries = WindowSummaries(summariesByWindow = Map.empty, rateMeter = new Meter())
 
+  def configuredChunkedTweetCombiner[F[_] : FlatMap](clock: Clock[F], config: Config)
+  : (WindowSummaries, Chunk[TweetExtract]) => F[(WindowSummaries, Stream[Pure, WindowSummaryOutput])] = {
 
-  /** Combines a Chunk[TweetExtract] with an existing set of window summaries.
-    * Produces a tuple containing the next state and any output,
-    * which is intended to be used within a scan of a TweetExtract stream,
-    * producing a Stream of WindowSummaryOutput.
-    *
-    * @param clock           The clock to determine when a window has expired.
-    * @param windowSummaries An existing WindowSummaries.
-    * @param tweetExtracts   A Chunk[TweetExtract].
-    * @return A tuple containing the next state for window summaries, and a pure Stream containing
-    *         the output summary for any windows that expired.
-    */
-  def combineChunkedTweet[F[_] : Sync](clock: Clock[F])
-                                      (windowSummaries: WindowSummaries, tweetExtracts: Chunk[TweetExtract])
-  : F[(WindowSummaries, Stream[Pure, WindowSummaryOutput])] =
-    for {
-      now <- clock.realTime(MILLISECONDS)
+    val eventTime = EventTime(config.eventTime)
+    val windowSummaryOutput: (WindowSummary, Meter) => WindowSummaryOutput = WindowSummaryOutput(config)
 
-      _ = windowSummaries.rateMeter.mark(tweetExtracts.size.toLong)
+    (windowSummaries: WindowSummaries, tweetExtracts: Chunk[TweetExtract]) =>
 
-      // Update the window summaries for each distinct window start time, but only for non-expired windows.
-      updatedSummaries = windowSummaries.summariesByWindow ++ (for {
-        windowStart <- tweetExtracts.iterator.map(_.windowStart).distinct
-        if !EventTime.isExpired(createdAt = windowStart, now = now)
-        previousSummaryForWindow = windowSummaries.summariesByWindow.getOrElse(
-          key = windowStart, default = WindowSummary(windowStart = windowStart, now = now))
-      } yield windowStart -> previousSummaryForWindow.add(tweetExtracts, now))
+      for {
+        now <- clock.realTime(MILLISECONDS)
 
-      // Separate expired windows from windows for which collection is ongoing
-      (expired, ongoing) = updatedSummaries.partition { case (windowStart, _) =>
-        EventTime.isExpired(createdAt = windowStart, now = now)
-      }
+        _ = windowSummaries.rateMeter.mark(tweetExtracts.size.toLong)
 
-      // The next value for this object
-      nextWindowSummaries = WindowSummaries(summariesByWindow = ongoing, rateMeter = windowSummaries.rateMeter)
+        // Update the window summaries for each distinct window start time, but only for non-expired windows.
+        updatedSummaries = windowSummaries.summariesByWindow ++ (for {
+          windowStart <- tweetExtracts.iterator.map(_.windowStart).distinct
+          if !eventTime.isExpired(createdAt = windowStart, now = now)
+          previousSummaryForWindow = windowSummaries.summariesByWindow.getOrElse(
+            key = windowStart, default = WindowSummary(windowStart = windowStart, now = now))
+        } yield windowStart -> previousSummaryForWindow.add(tweetExtracts, now))
 
-      // Any summaries that are expired get reported
-      output = expired.map { case (_, windowSummary) => WindowSummaryOutput(windowSummary, windowSummaries.rateMeter) }
-    } yield (nextWindowSummaries, Stream.emits(output.toSeq))
+        // Separate expired windows from windows for which collection is ongoing
+        (expired, ongoing) = updatedSummaries.partition { case (windowStart, _) =>
+          eventTime.isExpired(createdAt = windowStart, now = now)
+        }
+
+        // The next value for this object
+        nextWindowSummaries = WindowSummaries(summariesByWindow = ongoing, rateMeter = windowSummaries.rateMeter)
+
+        // Any summaries that are expired get reported
+        output = expired.map { case (_, windowSummary) => windowSummaryOutput(windowSummary, windowSummaries.rateMeter) }
+      } yield (nextWindowSummaries, Stream.emits(output.toSeq))
+  }
 }

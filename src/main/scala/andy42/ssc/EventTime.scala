@@ -1,7 +1,7 @@
 package andy42.ssc
 
-import config.Config.{EventTimeConfig => Config}
- 
+import andy42.ssc.config.{ EventTimeConfig => EventTimeConfig }
+
 
 /** Functions for segmenting an event stream into tumbling windows.
   *
@@ -14,17 +14,36 @@ import config.Config.{EventTimeConfig => Config}
   * discarded. The summary statistics for a window will only be emitted to the output
   * stream after the corresponding window has expired.
   */
-object EventTime {
+
+trait EventTime {
+  /** Move an instant (in millis) to the start of a window */
+  def toWindowStart(createdAt: EpochMillis): WindowStart
+
+  def toWindowEnd(createdAt: EpochMillis): EpochMillis
+
+  /** Does an instant (in millis) fall into a fully-expired window?
+    * We compare the instant that the window ends to the watermark position (relative to now):
+    * if the end of the window is before the watermark, that window is fully expired.
+    */
+  def isExpired(createdAt: EpochMillis, now: EpochMillis): Boolean
+}
+
+class ConfiguredEventTime(config: EventTimeConfig) extends EventTime {
 
   /** Move an instant (in millis) to the start of a window */
-  def toWindowStart(createdAt: EpochMillis): WindowStart = createdAt - (createdAt % Config.windowSizeMs)
+  def toWindowStart(createdAt: EpochMillis): WindowStart = createdAt - (createdAt % config.windowSizeMs)
 
-  def toWindowEnd(createdAt: EpochMillis): EpochMillis = toWindowStart(createdAt) + Config.windowSizeMs - 1
+  def toWindowEnd(createdAt: EpochMillis): EpochMillis = toWindowStart(createdAt) + config.windowSizeMs - 1
 
   /** Does an instant (in millis) fall into a fully-expired window?
     * We compare the instant that the window ends to the watermark position (relative to now):
     * if the end of the window is before the watermark, that window is fully expired.
     */
   def isExpired(createdAt: EpochMillis, now: EpochMillis): Boolean =
-    toWindowEnd(createdAt) < (now - Config.watermarkMs)
+    toWindowEnd(createdAt) < (now - config.watermarkMs)
+}
+
+object EventTime {
+
+  def apply(config: EventTimeConfig): EventTime = new ConfiguredEventTime(config)
 }

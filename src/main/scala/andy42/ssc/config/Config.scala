@@ -3,22 +3,25 @@ package andy42.ssc.config
 import pureconfig._
 import pureconfig.generic.auto._
 
+case class Config(twitterStream: TwitterStreamConfig,
+                  eventTime: EventTimeConfig,
+                  streamParameters: StreamParametersConfig,
+                  summaryOutput: SummaryOutputConfig)
 
 object Config {
 
-  val TwitterStreamConfig: TwitterStream = ConfigSource.default
-    .at(namespace = "twitter-stream")
-    .loadOrThrow[TwitterStream]
-
-  val EventTimeConfig: EventTime = ConfigSource.default
-    .at(namespace = "event-time")
-    .loadOrThrow[EventTime]
-
-  val StreamParametersConfig: StreamParameters = ConfigSource.default
-    .at(namespace = "stream-parameters")
-    .loadOrThrow[StreamParameters]
-
-  val SummaryOutputConfig: SummaryOutput = ConfigSource.default
-    .at(namespace = "summary-output")
-    .loadOrThrow[SummaryOutput]
+  val config: Config = Config(
+    twitterStream = ConfigSource.default
+      .at(namespace = "twitter-stream")
+      .loadOrThrow[TwitterStreamConfig],
+    eventTime = ConfigSource.default
+      .at(namespace = "event-time")
+      .loadOrThrow[EventTimeConfig],
+    streamParameters = ConfigSource.default
+      .at(namespace = "stream-parameters")
+      .loadOrThrow[StreamParametersConfig],
+    summaryOutput = ConfigSource.default
+      .at(namespace = "summary-output")
+      .loadOrThrow[SummaryOutputConfig]
+  )
 }

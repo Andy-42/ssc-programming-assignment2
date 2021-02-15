@@ -54,7 +54,7 @@ object TweetExtract {
     * @param json The `io.circe.Json` instance to decode.
     * @return If the tweet decoded successfully, a singleton Stream, otherwise an empty Stream.
     */
-  def decode[F[_]](json: io.circe.Json): IO[Stream[Pure, TweetExtract]] = IO {
+  def decode[F[_]](eventTime: EventTime)(json: io.circe.Json): IO[Stream[Pure, TweetExtract]] = IO {
 
     val hCursor = json.hcursor
 
@@ -64,7 +64,7 @@ object TweetExtract {
       parsedDate <- parseDate(createdAt)
     } yield
       TweetExtract(
-        windowStart = EventTime.toWindowStart(parsedDate),
+        windowStart = eventTime.toWindowStart(parsedDate),
         hashTags = extractHashTags(text),
         emojis = extractEmojis(text),
         urlDomains = extractUrlDomains(text)

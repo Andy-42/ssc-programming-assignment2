@@ -1,6 +1,6 @@
 package andy42.ssc
 
-import andy42.ssc.config.Config.{SummaryOutputConfig => Config}
+import andy42.ssc.config.Config
 import com.codahale.metrics.Meter
 
 import java.time.Instant
@@ -50,12 +50,15 @@ case class WindowSummaryOutput(windowStart: String,
 
 object WindowSummaryOutput {
 
-  def apply(windowSummary: WindowSummary,
+  def apply(config: Config)
+           (windowSummary: WindowSummary,
             rateMeter: Meter): WindowSummaryOutput = {
+
+    val eventTime = EventTime(config.eventTime)
 
     WindowSummaryOutput(
       windowStart = Instant.ofEpochMilli(windowSummary.windowStart).toString,
-      windowEnd = Instant.ofEpochMilli(EventTime.toWindowEnd(windowSummary.windowStart)).toString,
+      windowEnd = Instant.ofEpochMilli(eventTime.toWindowEnd(windowSummary.windowStart)).toString,
       windowLastUpdate = Instant.ofEpochMilli(windowSummary.lastWindowUpdate).toString,
 
       totalTweetCount = rateMeter.getCount,
@@ -66,9 +69,9 @@ object WindowSummaryOutput {
       fiveMinuteRate = rateMeter.getFiveMinuteRate,
       fifteenMinuteRate = rateMeter.getFifteenMinuteRate,
 
-      topEmojis = top(windowSummary.emojiCounts).toList,
-      topDomains = top(windowSummary.domainCounts).toList,
-      topHashtags = top(windowSummary.hashtagCounts).toList,
+      topEmojis = top(config.summaryOutput.topN, windowSummary.emojiCounts).toList,
+      topDomains = top(config.summaryOutput.topN, windowSummary.domainCounts).toList,
+      topHashtags = top(config.summaryOutput.topN, windowSummary.hashtagCounts).toList,
 
       tweetsWithEmojiPercent = 100.0 * windowSummary.tweetsWithEmoji / windowSummary.tweets,
       tweetsWithUrlPercent = 100.0 * windowSummary.tweetsWithUrl / windowSummary.tweets,
@@ -77,9 +80,9 @@ object WindowSummaryOutput {
   }
 
   /** Get the top N values by counts in descending order. */
-  def top(counts: Map[String, Count]): Seq[String] =
+  def top(topN: Int, counts: Map[String, Count]): Seq[String] =
     counts.toSeq
       .sortBy { case (_, count) => -count } // descending
-      .take(Config.topN)
+      .take(topN)
       .map { case (key, _) => key } // Keep the keys only
 }
