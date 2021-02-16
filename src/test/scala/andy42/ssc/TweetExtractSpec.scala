@@ -5,7 +5,8 @@ import io.circe.parser._
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 import andy42.ssc.config.EventTimeConfig
-import fs2.Pure
+import cats.effect.IO
+import fs2.{Pure, Stream}
 
 import scala.concurrent.duration._
 
@@ -13,7 +14,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
 
   val config: EventTimeConfig = EventTimeConfig(windowSize = 5.seconds, watermark = 15.seconds)
   val eventTime: EventTime = EventTime(config)
-  val decode: Json => fs2.Stream[Pure, TweetExtract] = TweetExtract.decode(eventTime = eventTime)
+  val decode: Json => IO[Stream[Pure, TweetExtract]] = TweetExtract.decode(eventTime = eventTime)
 
   "TweetExtract" should "decode valid JSON to Some(TweetExtract)" in {
 
@@ -26,7 +27,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    decode(rawJson).toList shouldBe List(
+    decode(rawJson).unsafeRunSync().toList shouldBe List(
       TweetExtract(windowStart = 1519765900000L,
         hashTags = Vector.empty,
         urlDomains = Vector.empty,
@@ -43,7 +44,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    decode(rawJson1).toList shouldBe Nil
+    decode(rawJson1).unsafeRunSync().toList shouldBe Nil
 
     val rawJson2: Json = parse(
       """
@@ -54,7 +55,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    decode(rawJson2).toList shouldBe Nil
+    decode(rawJson2).unsafeRunSync().toList shouldBe Nil
   }
 
   it should "decode JSON with an invalid created_at value to None" in {
@@ -67,7 +68,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    decode(rawJson1).toList shouldBe Nil
+    decode(rawJson1).unsafeRunSync().toList shouldBe Nil
   }
 
   it should "move the createdAt to the start of that period" in {
@@ -83,7 +84,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    decode(rawJson).toList shouldBe List(
+    decode(rawJson).unsafeRunSync().toList shouldBe List(
       // With the default configuration, createdAt would be 1519765901000 if WindowSpec.toWindowStart was not applied.
       TweetExtract(windowStart = 1519765900000L,
         hashTags = Vector.empty,
@@ -103,7 +104,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    decode(rawJson).toList shouldBe List(
+    decode(rawJson).unsafeRunSync().toList shouldBe List(
       TweetExtract(windowStart = 1519765900000L,
         hashTags = Vector.empty,
         urlDomains = Vector.empty,
@@ -120,7 +121,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    decode(rawJson).toList shouldBe List(
+    decode(rawJson).unsafeRunSync().toList shouldBe List(
       TweetExtract(windowStart = 1519765900000L,
         hashTags = Vector.empty,
         urlDomains = Vector("foo.com", "twitter.com"),
@@ -138,7 +139,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    decode(rawJson).toList shouldBe List(
+    decode(rawJson).unsafeRunSync().toList shouldBe List(
       TweetExtract(windowStart = 1519765900000L,
         hashTags = Vector("hello", "world"),
         urlDomains = Vector.empty,

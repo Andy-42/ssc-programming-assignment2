@@ -23,8 +23,10 @@ object TWStreamApp extends IOApp {
         // Start with the stream of Tweet JSON coming from the Twitter sample stream.
         initialStream <- TWStream.jsonStream[IO]
 
+        // Decode tweet JSON to TweetExtract
         extractedTweetStream <- decodeToTweetExtract(initialStream)
 
+        // Summarize the Stream of TweetExtract into tumbling windows, and emit summary output as windows expire
         summaryOutputStream <- summarizeStream(extractedTweetStream)
       } yield summaryOutputStream
 

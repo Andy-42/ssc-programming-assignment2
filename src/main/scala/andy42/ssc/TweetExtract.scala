@@ -1,5 +1,6 @@
 package andy42.ssc
 
+import cats.effect.IO
 import com.twitter.twittertext.{Extractor, TwitterTextEmojiRegex}
 import fs2.{Pure, Stream}
 
@@ -53,7 +54,7 @@ object TweetExtract {
     * @param json The `io.circe.Json` instance to decode.
     * @return If the tweet decoded successfully, a singleton Stream, otherwise an empty Stream.
     */
-  def decode(eventTime: EventTime)(json: io.circe.Json): Stream[Pure, TweetExtract] = {
+  def decode(eventTime: EventTime)(json: io.circe.Json): IO[Stream[Pure, TweetExtract]] = IO {
 
     val hCursor = json.hcursor
 
