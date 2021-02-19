@@ -3,7 +3,9 @@ package andy42.ssc
 import cats.effect.IO
 import com.twitter.twittertext.{Extractor, TwitterTextEmojiRegex}
 import fs2.{Pure, Stream}
+import io.circe.HCursor
 
+import java.net.URL
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -54,36 +56,50 @@ object TweetExtract {
     * @param json The `io.circe.Json` instance to decode.
     * @return If the tweet decoded successfully, a singleton Stream, otherwise an empty Stream.
     */
-  def decode(eventTime: EventTime)(json: io.circe.Json): IO[Stream[Pure, TweetExtract]] = IO {
+  def decode(eventTime: EventTime)(json: io.circe.Json): IO[Stream[Pure, TweetExtract]] = {
 
-    val hCursor = json.hcursor
+    val decoder = decodeToEither(eventTime) _
 
-    val decodeResult: Either[Throwable, TweetExtract] =
-      for {
-        createdAt <- hCursor.get[String]("created_at")
-        text <- hCursor.get[String]("text")
-        parsedDate <- parseDate(createdAt)
-      } yield TweetExtract(
-        windowStart = eventTime.toWindowStart(parsedDate),
-        hashTags = extractHashTags(text),
-        emojis = extractEmojis(text),
-        urlDomains = extractUrlDomains(text)
-      )
-
-    decodeResult.fold(_ => Stream.empty, tweetExtract => Stream.emit(tweetExtract))
+    IO {
+      decoder(json)
+        .fold(_ => Stream.empty, tweetExtract => Stream.emit(tweetExtract))
+    }
   }
+
+  def decodeToEither(eventTime: EventTime)(json: io.circe.Json): Either[String, TweetExtract] = {
+
+    implicit val hCursor: HCursor = json.hcursor
+
+    for {
+      createdAt <- getStringField("created_at")
+      text <- getStringField("text")
+      parsedDate <- parseDate(createdAt)
+      urlDomains <- parseUrlDomains(extractUrls(text)) // Left if parsing any URL fails
+    } yield TweetExtract(
+      windowStart = eventTime.toWindowStart(parsedDate),
+      hashTags = extractHashTags(text),
+      emojis = extractEmojis(text),
+      urlDomains = urlDomains
+    )
+  }
+
+  private def getStringField(name: String)(implicit hCursor: HCursor): Either[String, String] =
+    hCursor.get[String](name)
+      .left.map(_ => s"get $name")
 
   // For decoding tweet timestamps.
   private[this] val formatter = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss Z yyyy", Locale.ENGLISH)
+
+  def parseDate(dateString: String): Either[String, EpochMillis] =
+    Try(Instant.from(formatter.parse(dateString)).toEpochMilli)
+      .toEither.left.map(_ => s"parseDate")
+
 
   // Use the twitter text library Extractor to extract hashtags and URLs from text
   private[this] val extractor = new Extractor()
 
   // Use the twitter text library pattern for extracting emoji from text
   private[this] val emojiRegex = new Regex(TwitterTextEmojiRegex.VALID_EMOJI_PATTERN.pattern)
-
-  def parseDate(dateString: String): Either[Throwable, EpochMillis] =
-    Try(Instant.from(formatter.parse(dateString)).toEpochMilli).toEither
 
   def extractHashTags(text: String): Vector[String] = extractor.extractHashtags(text).asScala.toVector
 
@@ -92,14 +108,21 @@ object TweetExtract {
   /** Extract URLs from `text`, and then the domains (host) from the URL text.
     *
     * While we would expect that all URLs will be valid (because they have already been
-    * validated by the extraction regular expression), if an URL cannot be parsed at this point,
-    * it is silently discarded.
+    * validated by the extraction regular expression), we will fail here if any URL that
+    * has been extracted can't be parsed.
     */
-  def extractUrlDomains(text: String): Vector[String] =
-    (for {
-      urlString <- extractor.extractURLs(text).asScala
-      url <- Try(new java.net.URL(urlString)).toOption
-    } yield url.getHost).toVector
+  def extractUrls(text: String): Vector[String] =
+    extractor.extractURLs(text).asScala.toVector
+
+  def parseUrlDomains(urlStrings: Vector[String]): Either[String, Vector[String]] = {
+
+    val maybeURLs = urlStrings.map(urlString => Try(new URL(urlString)))
+
+    if (maybeURLs.exists(_.isFailure))
+      Left("parseUrl")
+    else
+      Right(maybeURLs.map(_.get.getHost))
+  }
 
   private val photoDomains = Set("www.instagram.com", "pic.twitter.com")
 }

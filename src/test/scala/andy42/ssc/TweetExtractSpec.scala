@@ -1,20 +1,19 @@
 package andy42.ssc
 
+import andy42.ssc.config.EventTimeConfig
 import io.circe._
 import io.circe.parser._
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
-import andy42.ssc.config.EventTimeConfig
-import cats.effect.IO
-import fs2.{Pure, Stream}
 
 import scala.concurrent.duration._
+
 
 class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
 
   val config: EventTimeConfig = EventTimeConfig(windowSize = 5.seconds, watermark = 15.seconds)
   val eventTime: EventTime = EventTime(config)
-  val decode: Json => IO[Stream[Pure, TweetExtract]] = TweetExtract.decode(eventTime = eventTime)
+  val decode: Json => Either[String, TweetExtract] = TweetExtract.decodeToEither(eventTime = eventTime)
 
   "TweetExtract" should "decode valid JSON to Some(TweetExtract)" in {
 
@@ -27,14 +26,14 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    decode(rawJson).unsafeRunSync().toList shouldBe List(
+    decode(rawJson) shouldBe Right(
       TweetExtract(windowStart = 1519765900000L,
         hashTags = Vector.empty,
         urlDomains = Vector.empty,
         emojis = Vector.empty))
   }
 
-  it should "decode JSON with missing fields to None" in {
+  it should "decode JSON with missing fields to a Left" in {
     val rawJson1: Json = parse(
       """
     {
@@ -44,7 +43,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    decode(rawJson1).unsafeRunSync().toList shouldBe Nil
+    decode(rawJson1) shouldBe Left("get created_at")
 
     val rawJson2: Json = parse(
       """
@@ -55,7 +54,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    decode(rawJson2).unsafeRunSync().toList shouldBe Nil
+    decode(rawJson2) shouldBe Left("get text")
   }
 
   it should "decode JSON with an invalid created_at value to None" in {
@@ -68,12 +67,10 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    decode(rawJson1).unsafeRunSync().toList shouldBe Nil
+    decode(rawJson1) shouldBe Left("parseDate")
   }
 
   it should "move the createdAt to the start of that period" in {
-
-    // FIXME: This test is dependent on the window-spec configuration, so need a better way to test
 
     val rawJson: Json = parse(
       """
@@ -84,8 +81,8 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    decode(rawJson).unsafeRunSync().toList shouldBe List(
-      // With the default configuration, createdAt would be 1519765901000 if WindowSpec.toWindowStart was not applied.
+    decode(rawJson) shouldBe Right(
+      // Before mapping to start of window, createdAt would be 1519765901000.
       TweetExtract(windowStart = 1519765900000L,
         hashTags = Vector.empty,
         urlDomains = Vector.empty,
@@ -104,7 +101,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    decode(rawJson).unsafeRunSync().toList shouldBe List(
+    decode(rawJson) shouldBe Right(
       TweetExtract(windowStart = 1519765900000L,
         hashTags = Vector.empty,
         urlDomains = Vector.empty,
@@ -121,7 +118,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    decode(rawJson).unsafeRunSync().toList shouldBe List(
+    decode(rawJson) shouldBe Right(
       TweetExtract(windowStart = 1519765900000L,
         hashTags = Vector.empty,
         urlDomains = Vector("foo.com", "twitter.com"),
@@ -139,11 +136,19 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
   """
     ).getOrElse(Json.Null)
 
-    decode(rawJson).unsafeRunSync().toList shouldBe List(
+    decode(rawJson) shouldBe Right(
       TweetExtract(windowStart = 1519765900000L,
         hashTags = Vector("hello", "world"),
         urlDomains = Vector.empty,
         // Note that the order is reversed relative to the order in the original text
         emojis = Vector.empty))
+  }
+
+  "extractUrlDomains" should "produce a Right only if all URL parse successfully" in {
+    TweetExtract.parseUrlDomains(Vector("http://foo.com", "https://bar.com")) shouldBe
+      Right(Vector("foo.com", "bar.com"))
+
+    TweetExtract.parseUrlDomains(Vector("httpx://foo.com", "https://bar.com")) shouldBe
+      Left("parseUrl")
   }
 }
