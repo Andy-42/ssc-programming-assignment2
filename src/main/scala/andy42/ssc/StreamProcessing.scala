@@ -2,24 +2,31 @@ package andy42.ssc
 
 import andy42.ssc.config.Config
 import cats.data.Reader
-import cats.effect.{Clock, Concurrent, IO, Timer}
+import cats.effect.{Clock, Concurrent, Timer}
 import fs2.{Chunk, Pure, Stream}
 import io.circe.Json
 
 
 object StreamProcessing {
 
-  def decodeToTweetExtract[F](initialStream: Stream[IO, Json])
-                             (implicit concurrent: Concurrent[IO]): Reader[Config, Stream[IO, TweetExtract]] =
+  def decodeToTweetExtract[F[_] : Concurrent](initialStream: Stream[F, Json]): Reader[Config, Stream[F, TweetExtract]] =
     Reader { config: Config =>
-      val decode: Json => IO[Stream[Pure, TweetExtract]] = TweetExtract.decode(EventTime(config.eventTime))
+
+      // A configured instance of the tweet decoder
+      val decodeToEither: Json => Either[String, TweetExtract] = TweetExtract.decode(EventTime(config.eventTime))
+
+      // Wrap the decoding in a Concurrent effect, and convert the result of conversion from an Either to a pure Stream.
+      val decodeToPureStreamInCurrentEffect: Json => F[Stream[Pure, TweetExtract]] = (json: Json) =>
+        Concurrent[F].pure(decodeToEither(json)
+          .fold(_ => Stream.empty, (tweetExtract: TweetExtract) => Stream.emit(tweetExtract)))
+
       val maxConcurrent = config.streamParameters.extractConcurrency
 
       // Map the incoming tweets in JSON format to extracts with only the aspects this stream monitors.
       // The presumption is that this stage will use significant CPU, so we can increase the concurrency
       // to use available cores to increase overall throughput.
       initialStream
-        .parEvalMapUnordered(maxConcurrent)(decode)
+        .parEvalMapUnordered(maxConcurrent)(decodeToPureStreamInCurrentEffect)
         .flatten
     }
 

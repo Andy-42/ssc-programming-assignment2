@@ -13,7 +13,7 @@ class TweetExtractSpec extends AnyFlatSpec with should.Matchers {
 
   val config: EventTimeConfig = EventTimeConfig(windowSize = 5.seconds, watermark = 15.seconds)
   val eventTime: EventTime = EventTime(config)
-  val decode: Json => Either[String, TweetExtract] = TweetExtract.decodeToEither(eventTime = eventTime)
+  val decode: Json => Either[String, TweetExtract] = TweetExtract.decode(eventTime = eventTime)
 
   "TweetExtract" should "decode valid JSON to Some(TweetExtract)" in {
 

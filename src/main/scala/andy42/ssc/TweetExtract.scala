@@ -1,8 +1,6 @@
 package andy42.ssc
 
-import cats.effect.IO
 import com.twitter.twittertext.{Extractor, TwitterTextEmojiRegex}
-import fs2.{Pure, Stream}
 import io.circe.HCursor
 
 import java.net.URL
@@ -40,33 +38,21 @@ case class TweetExtract(windowStart: WindowStart,
 
 object TweetExtract {
 
-  /** Decode tweet JSON to a TweetExtract.
+  /** Decode tweet JSON to either a TweetExtract, or if decoding fails, a reason for the decode failure.
     *
-    * A tweet is silently discarded if:
+    * Decoding could fail because:
     *  - The created_at or text field is missing.
     *  - The created_at field cannot be decoded to an instant.
-    *
-    * In a fuller implementation, we would probably want to collect statistics on
-    * the fraction of tweets that do not decode, but for simplicity, this implementation
-    * simply drops them.
+    *  - An URL extracted from the text could not be parsed.
     *
     * This uses the Twitter library for extracting emoji, URLs and hashtags from tweet text.
     * This implementation is based on regular expressions.
     *
-    * @param json The `io.circe.Json` instance to decode.
-    * @return If the tweet decoded successfully, a singleton Stream, otherwise an empty Stream.
+    * @param eventTime A configured instance of EventTime.
+    * @param json      The `io.circe.Json` instance to decode.
+    * @return Either an decode failure reason or the extracted tweet.
     */
-  def decode(eventTime: EventTime)(json: io.circe.Json): IO[Stream[Pure, TweetExtract]] = {
-
-    val decoder = decodeToEither(eventTime) _
-
-    IO {
-      decoder(json)
-        .fold(_ => Stream.empty, tweetExtract => Stream.emit(tweetExtract))
-    }
-  }
-
-  def decodeToEither(eventTime: EventTime)(json: io.circe.Json): Either[String, TweetExtract] = {
+  def decode(eventTime: EventTime)(json: io.circe.Json): Either[String, TweetExtract] = {
 
     implicit val hCursor: HCursor = json.hcursor
 
