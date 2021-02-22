@@ -139,13 +139,36 @@ every 5 seconds.
 }
 ```
 
-# Next Steps
+# Concurrency
 
-This project was a first attempt at using FS2 and Cats Effect.
-I implemented a couple of variations on the stream processing
-(e.g., chunked vs. one-at-a-time aggregation). The next round of
-learning steps include:
-* Support for increasing concurrency in TweetExtract was implemented in the TWStreamApp stream.
-  Investigate how changing the level of concurrency scale in terms of throughput.
-* Learning about Cats Effect in general. I learned just enough to get by
-  in this project, and so now I have a better idea of what I need to learn!
+The tweet extraction process was assumed to be one of the more CPU intensive steps, 
+so `StreamProcessing.decodeToTweetExtract` was built so that it was parameterized 
+(in `Config.streamParameters.extractConcurrency`) so that it could easily be run with different concurrency levels.
+
+I captured a chunk of tweets (100000) and converted them to JSON (see: `CaptureTweets`).
+This resulted in 99999 actual lines in the file.
+TODO: Why weren't there 100K? Are these empty lines or is something else going on?
+
+Using the captured tweets as input, I ran `StreamProcessing.decodeToTweetExtract` with different concurrency levels:
+
+|Concurrency|Time (ms)|
+|---:|---:|
+|1|14667|
+|2|10722|
+|3|10165|
+|4|9865|
+|5|9828|
+|6|9728|
+|7|9719|
+|8|9678|
+|9|9663|
+|10|9716|
+
+I ran this on a 6-core machine, so I would have expected results to scale up more or less linearly with cores
+up to the number of available cores. This seems wrong. I would think that the implementation of `ContextShift`
+using the `global` execution context would use all available cores.
+
+The other possibility is that this code is doing the tweet extraction on a stream of individual `Json` elements,
+and not in a chunked way. Could the overhead for not doing it in a chunked way be that significant? 
+It might be worth implementing `StreamProcessing.decodeToTweetExtract` using chunks to see what impact that has
+on performance.
